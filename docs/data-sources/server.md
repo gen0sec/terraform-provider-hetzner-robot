@@ -19,32 +19,29 @@ description: |-
 
 - `server_number` (Number) Server number
 
-### Optional
+### Read-Only
 
 - `cpanel` (Boolean) Flag of cPanel installation availability
+- `datacenter` (String) Data center
 - `hot_swap` (Boolean) Flag of Hot Swap availability
+- `id` (String) The ID of this resource.
+- `ip_addresses` (List of String) Array of assigned single IP addresses
+- `is_cancelled` (Boolean) Status of server cancellation
 - `linked_storagebox` (Number) Linked Storage Box ID
+- `paid_until` (String) Paid until date
 - `plesk` (Boolean) Flag of Plesk installation availability
+- `product` (String) Server product name
 - `rescue` (Boolean) Flag of Rescue System availability
 - `reset` (Boolean) Flag of reset system availability
 - `server_ip` (String) Server IP
 - `server_ipv6` (String) Server IPv6 Net
 - `server_name` (String) Server name
-- `vnc` (Boolean) Flag of VNC installation availability
-- `windows` (Boolean) Flag of Windows installation availability
-- `wol` (Boolean) Flag of Wake On Lan availability
-
-### Read-Only
-
-- `datacenter` (String) Data center
-- `id` (String) The ID of this resource.
-- `ip_addresses` (List of String) Array of assigned single IP addresses
-- `is_cancelled` (Boolean) Status of server cancellation
-- `paid_until` (String) Paid until date
-- `product` (String) Server product name
 - `server_subnets` (List of Object) Array of assigned subnets (see [below for nested schema](#nestedatt--server_subnets))
 - `status` (String) Server status ("ready" or "in process")
 - `traffic` (String) Free traffic quota, 'unlimited' in case of unlimited traffic
+- `vnc` (Boolean) Flag of VNC installation availability
+- `windows` (Boolean) Flag of Windows installation availability
+- `wol` (Boolean) Flag of Wake On Lan availability
 
 <a id="nestedatt--server_subnets"></a>
 ### Nested Schema for `server_subnets`
