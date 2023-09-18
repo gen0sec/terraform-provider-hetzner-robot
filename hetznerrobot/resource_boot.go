@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"strconv"
 )
 
 func resourceBoot() *schema.Resource {
@@ -15,7 +14,7 @@ func resourceBoot() *schema.Resource {
 		DeleteContext: resourceBootDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: resourceBootImportState,
+			StateContext: resourceBootImportState,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -74,12 +73,12 @@ func resourceBoot() *schema.Resource {
 	}
 }
 
-func resourceBootImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceBootImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	c := meta.(HetznerRobotClient)
 
-	serverID, _ := strconv.Atoi(d.Id())
+	serverID := d.Id()
 
-	boot, err := c.getBoot(serverID)
+	boot, err := c.getBoot(ctx, serverID)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +100,7 @@ func resourceBootImportState(d *schema.ResourceData, meta interface{}) ([]*schem
 func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID := d.Get("server_id").(int)
+	serverID := d.Id()
 	activeBootProfile := d.Get("active_profile").(string)
 	arch := d.Get("architecture").(string)
 	os := d.Get("operating_system").(string)
@@ -113,7 +112,7 @@ func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
-	bootProfile, err := c.setBootProfile(serverID, activeBootProfile, arch, os, lang, authorizedKeys)
+	bootProfile, err := c.setBootProfile(ctx, serverID, activeBootProfile, arch, os, lang, authorizedKeys)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -121,7 +120,7 @@ func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("ipv4_address", bootProfile.ServerIPv4)
 	d.Set("ipv6_network", bootProfile.ServerIPv6)
 	d.Set("password", bootProfile.Password)
-	d.SetId(strconv.Itoa(serverID))
+	d.SetId(serverID)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -132,8 +131,8 @@ func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interf
 func resourceBootRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID, _ := strconv.Atoi(d.Id())
-	boot, err := c.getBoot(serverID)
+	serverID := d.Id()
+	boot, err := c.getBoot(ctx, serverID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -145,7 +144,6 @@ func resourceBootRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("language", boot.Language)
 	d.Set("operating_system", boot.OperatingSystem)
 	d.Set("password", boot.Password)
-	d.Set("server_id", serverID)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -156,7 +154,7 @@ func resourceBootRead(ctx context.Context, d *schema.ResourceData, meta interfac
 func resourceBootUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID, _ := strconv.Atoi(d.Id())
+	serverID := d.Id()
 	activeBootProfile := d.Get("active_profile").(string)
 	arch := d.Get("architecture").(string)
 	os := d.Get("operating_system").(string)
@@ -168,7 +166,7 @@ func resourceBootUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
-	bootProfile, err := c.setBootProfile(serverID, activeBootProfile, arch, os, lang, authorizedKeys)
+	bootProfile, err := c.setBootProfile(ctx, serverID, activeBootProfile, arch, os, lang, authorizedKeys)
 	if err != nil {
 		return diag.FromErr(err)
 	}

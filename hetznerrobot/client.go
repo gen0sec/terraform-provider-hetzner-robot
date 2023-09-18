@@ -1,6 +1,7 @@
 package hetznerrobot
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,8 +23,8 @@ func NewHetznerRobotClient(username string, password string, url string) Hetzner
 	}
 }
 
-func (c *HetznerRobotClient) makeAPICall(method string, uri string, body io.Reader, expectedStatusCode int) ([]byte, error) {
-	r, err := http.NewRequest(method, uri, body)
+func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri string, body io.Reader, expectedStatusCode int) ([]byte, error) {
+	r, err := http.NewRequestWithContext(ctx, method, uri, body)
 	if err != nil {
 		return nil, err
 	}

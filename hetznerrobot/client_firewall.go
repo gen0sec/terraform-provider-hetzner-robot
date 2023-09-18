@@ -1,6 +1,7 @@
 package hetznerrobot
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -35,9 +36,9 @@ type HetznerRobotFirewallRule struct {
 	Action   string `json:"action"`
 }
 
-func (c *HetznerRobotClient) getFirewall(ip string) (*HetznerRobotFirewall, error) {
+func (c *HetznerRobotClient) getFirewall(ctx context.Context, ip string) (*HetznerRobotFirewall, error) {
 
-	bytes, err := c.makeAPICall("GET", fmt.Sprintf("%s/firewall/%s", c.url, ip), nil, http.StatusOK)
+	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/firewall/%s", c.url, ip), nil, http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func (c *HetznerRobotClient) getFirewall(ip string) (*HetznerRobotFirewall, erro
 	return &firewall.Firewall, nil
 }
 
-func (c *HetznerRobotClient) setFirewall(firewall HetznerRobotFirewall) error {
+func (c *HetznerRobotClient) setFirewall(ctx context.Context, firewall HetznerRobotFirewall) error {
 	formParams := url.Values{}
 
 	whitelistHOS := "false"
@@ -79,7 +80,7 @@ func (c *HetznerRobotClient) setFirewall(firewall HetznerRobotFirewall) error {
 	encodedParams := formParams.Encode()
 	log.Println(encodedParams)
 
-	_, err := c.makeAPICall("POST", fmt.Sprintf("%s/firewall/%s", c.url, firewall.IP), strings.NewReader(encodedParams), http.StatusAccepted)
+	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/firewall/%s", c.url, firewall.IP), strings.NewReader(encodedParams), http.StatusAccepted)
 	if err != nil {
 		return err
 	}

@@ -2,8 +2,6 @@ package hetznerrobot
 
 import (
 	"fmt"
-	"strconv"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -11,12 +9,6 @@ func dataBoot() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceBootRead,
 		Schema: map[string]*schema.Schema{
-			"server_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Server ID",
-			},
-
 			// read-only / computed
 			"active_profile": {
 				Type:        schema.TypeString, // Enum should be better (linux/rescue/...)
@@ -65,7 +57,7 @@ func dataBoot() *schema.Resource {
 func dataSourceBootRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(HetznerRobotClient)
 
-	serverID := d.Get("server_id").(int)
+	serverID := d.Id()
 	boot, err := c.getBoot(serverID)
 	if err != nil {
 		return fmt.Errorf("Unable to find Boot Profile for server ID %d:\n\t %q", serverID, err)
@@ -78,8 +70,7 @@ func dataSourceBootRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("language", boot.Language)
 	d.Set("operating_system", boot.OperatingSystem)
 	d.Set("password", boot.Password)
-	d.Set("server_id", serverID)
-	d.SetId(strconv.Itoa(serverID))
+	d.SetId(serverID)
 
 	return nil
 }

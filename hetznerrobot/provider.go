@@ -27,11 +27,15 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"hetzner-robot_boot":     resourceBoot(),
-			"hetzner-robot_firewall": resourceFirewall(),
+			"hetznerrobot_boot":     resourceBoot(),
+			"hetznerrobot_firewall": resourceFirewall(),
+			"hetznerrobot_vswitch":  resourceVSwitch(),
+			"hetznerrobot_server":   resourceServer(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"hetzner-robot_boot": dataBoot(),
+			"hetznerrobot_boot":    dataBoot(),
+			"hetznerrobot_server":  dataServer(),
+			"hetznerrobot_vswitch": dataVSwitch(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

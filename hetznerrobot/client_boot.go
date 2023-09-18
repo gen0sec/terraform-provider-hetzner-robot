@@ -3,6 +3,7 @@ package hetznerrobot
 // https://robot.your-server.de/doc/webservice/en.html#boot-configuration
 
 import (
+	"context"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"log"
@@ -24,8 +25,8 @@ type BootProfile struct {
 	ServerIPv6      string
 }
 
-func (c *HetznerRobotClient) getBoot(serverID int) (*BootProfile, error) {
-	bytes, err := c.makeAPICall("GET", fmt.Sprintf("%s/boot/%d", c.url, serverID), nil, http.StatusOK)
+func (c *HetznerRobotClient) getBoot(ctx context.Context, serverID string) (*BootProfile, error) {
+	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/boot/%s", c.url, serverID), nil, http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func (c *HetznerRobotClient) getBoot(serverID int) (*BootProfile, error) {
 	return &bootProfile, nil
 }
 
-func (c *HetznerRobotClient) setBootProfile(serverID int, activeBootProfile string, arch string, os string, lang string, authorizedKeys []string) (*BootProfile, error) {
+func (c *HetznerRobotClient) setBootProfile(ctx context.Context, serverID string, activeBootProfile string, arch string, os string, lang string, authorizedKeys []string) (*BootProfile, error) {
 	formParams := url.Values{}
 	formParams.Set("arch", arch)
 	for _, key := range authorizedKeys {
@@ -73,10 +74,10 @@ func (c *HetznerRobotClient) setBootProfile(serverID int, activeBootProfile stri
 	encodedParams := formParams.Encode()
 	log.Println(encodedParams)
 
-	bytes, err := c.makeAPICall("POST", fmt.Sprintf("%s/boot/%d/%s", c.url, serverID, activeBootProfile), strings.NewReader(encodedParams), http.StatusOK)
+	bytes, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/boot/%s/%s", c.url, serverID, activeBootProfile), strings.NewReader(encodedParams), http.StatusOK)
 	if err != nil {
 		if strings.Contains(err.Error(), "BOOT_ALREADY_ENABLED") {
-			return c.getBoot(serverID)
+			return c.getBoot(ctx, serverID)
 		}
 		return nil, err
 	}
