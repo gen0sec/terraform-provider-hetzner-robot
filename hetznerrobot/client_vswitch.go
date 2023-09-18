@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,10 +11,10 @@ import (
 )
 
 type HetznerRobotVSwitchServer struct {
-	ServerIP      string `json:"server_ip"`
-	ServerIPv6Net string `json:"server_ipv6_net"`
-	ServerNumber  int    `json:"server_number"`
-	Status        string `json:"status"`
+	ServerNumber  int    `json:"server_number,omitempty"`
+	ServerIP      string `json:"server_ip,omitempty"`
+	ServerIPv6Net string `json:"server_ipv6_net,omitempty"`
+	Status        string `json:"status,omitempty"`
 }
 
 type HetznerRobotVSwitchSubnet struct {
@@ -42,7 +41,7 @@ type HetznerRobotVSwitch struct {
 }
 
 func (c *HetznerRobotClient) getVSwitch(ctx context.Context, id string) (*HetznerRobotVSwitch, error) {
-	res, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/vswitch/%s", c.url, id), nil, http.StatusOK)
+	res, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/vswitch/%s", c.url, id), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func (c *HetznerRobotClient) createVSwitch(ctx context.Context, name string, vla
 	data := url.Values{}
 	data.Set("vlan", strconv.Itoa(vlan))
 	data.Set("name", name)
-	res, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/vswitch", c.url), strings.NewReader(data.Encode()), http.StatusOK)
+	res, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/vswitch", c.url), strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +73,31 @@ func (c *HetznerRobotClient) updateVSwitch(ctx context.Context, id string, name 
 	data := url.Values{}
 	data.Set("vlan", strconv.Itoa(vlan))
 	data.Set("name", name)
-	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/vswitch/%s", c.url, id), strings.NewReader(data.Encode()), http.StatusOK)
+	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/vswitch/%s", c.url, id), strings.NewReader(data.Encode()))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *HetznerRobotClient) addVSwitchServers(ctx context.Context, id string, servers []HetznerRobotVSwitchServer) error {
+	data := url.Values{}
+	for _, server := range servers {
+		data.Add("server", strconv.Itoa(server.ServerNumber))
+	}
+	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/vswitch/%s/server", c.url, id), strings.NewReader(data.Encode()))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *HetznerRobotClient) removeVSwitchServers(ctx context.Context, id string, servers []HetznerRobotVSwitchServer) error {
+	data := url.Values{}
+	for _, server := range servers {
+		data.Add("server", strconv.Itoa(server.ServerNumber))
+	}
+	_, err := c.makeAPICall(ctx, "DELETE", fmt.Sprintf("%s/vswitch/%s/server", c.url, id), strings.NewReader(data.Encode()))
 	if err != nil {
 		return err
 	}
@@ -85,7 +108,7 @@ func (c *HetznerRobotClient) deleteVSwitch(ctx context.Context, id string) error
 	now := time.Now()
 	data := url.Values{}
 	data.Set("cancellation_date", now.Format("2006-01-02"))
-	_, err := c.makeAPICall(ctx, "DELETE", fmt.Sprintf("%s/vswitch/%s", c.url, id), strings.NewReader(data.Encode()), http.StatusOK)
+	_, err := c.makeAPICall(ctx, "DELETE", fmt.Sprintf("%s/vswitch/%s", c.url, id), strings.NewReader(data.Encode()))
 	if err != nil {
 		return err
 	}

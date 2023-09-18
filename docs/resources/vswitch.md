@@ -18,6 +18,7 @@ description: |-
 ### Optional
 
 - `name` (String) vSwitch name
+- `servers` (Block List) Attached server list (see [below for nested schema](#nestedblock--servers))
 - `vlan` (Number) VLAN ID
 
 ### Read-Only
@@ -25,8 +26,21 @@ description: |-
 - `cloud_networks` (List of Object) Attached cloud network list (see [below for nested schema](#nestedatt--cloud_networks))
 - `id` (String) The ID of this resource.
 - `is_cancelled` (Boolean) Cancellation status
-- `servers` (List of Object) Attached server list (see [below for nested schema](#nestedatt--servers))
 - `subnets` (List of Object) Attached subnet list (see [below for nested schema](#nestedatt--subnets))
+
+<a id="nestedblock--servers"></a>
+### Nested Schema for `servers`
+
+Required:
+
+- `server_number` (Number)
+
+Read-Only:
+
+- `server_ip` (String)
+- `server_ipv6_net` (String)
+- `status` (String)
+
 
 <a id="nestedatt--cloud_networks"></a>
 ### Nested Schema for `cloud_networks`
@@ -37,17 +51,6 @@ Read-Only:
 - `id` (Number)
 - `ip` (String)
 - `mask` (Number)
-
-
-<a id="nestedatt--servers"></a>
-### Nested Schema for `servers`
-
-Read-Only:
-
-- `server_ip` (String)
-- `server_ipv6_net` (String)
-- `server_number` (Number)
-- `status` (String)
 
 
 <a id="nestedatt--subnets"></a>

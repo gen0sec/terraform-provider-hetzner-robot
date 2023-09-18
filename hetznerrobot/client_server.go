@@ -1,50 +1,51 @@
 package hetznerrobot
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 )
 
 type HetznerRobotServerResponse struct {
 	Server HetznerRobotServer `json:"server"`
 }
 
+type HetznerRobotServerSubnet struct {
+	IP   string `json:"ip"`
+	Mask string `json:"mask"`
+}
+
 type HetznerRobotServer struct {
-	IP         string `json:"server_ip"`
-	Number     int    `json:"server_number"`
-	Name       string `json:"server_name"`
-	Product    string `json:"product"`
-	DataCenter string `json:"dc"`
-	Traffic    string `json:"traffic"`
-	Status     string `json:"status"`
-	Cancelled  bool   `json:"cancelled"`
-	PaidUntil  string `json:"paid_until"`
+	ServerIP         string                     `json:"server_ip"`
+	ServerIPv6       string                     `json:"server_ipv6_net"`
+	ServerNumber     int                        `json:"server_number"`
+	ServerName       string                     `json:"server_name"`
+	Product          string                     `json:"product"`
+	DataCenter       string                     `json:"dc"`
+	Traffic          string                     `json:"traffic"`
+	Status           string                     `json:"status"`
+	Cancelled        bool                       `json:"cancelled"`
+	PaidUntil        string                     `json:"paid_until"`
+	IPs              []string                   `json:"ip"`
+	Subnets          []HetznerRobotServerSubnet `json:"subnet"`
+	LinkedStoragebox int                        `json:"linked_storagebox"`
+
+	Reset   bool `json:"reset"`
+	Rescue  bool `json:"rescue"`
+	VNC     bool `json:"vnc"`
+	Windows bool `json:"windows"`
+	Plesk   bool `json:"plesk"`
+	CPanel  bool `json:"cpanel"`
+	Wol     bool `json:"wol"`
+	HotSwap bool `json:"hot_swap"`
 }
 
 type HetznerRobotServerRenameRequestBody struct {
 	Name string `json:"server_name"`
 }
 
-func (c *HetznerRobotClient) getServer(ctx context.Context, ip string) (*HetznerRobotServer, error) {
-
-	res, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/server/%s", c.url, ip), nil, http.StatusOK)
-	if err != nil {
-		return nil, err
-	}
-
-	serverResponse := HetznerRobotServerResponse{}
-	if err = json.Unmarshal(res, &serverResponse); err != nil {
-		return nil, err
-	}
-	return &serverResponse.Server, nil
-}
-
-func (c *HetznerRobotClient) setServerName(ctx context.Context, ip string, name string) (*HetznerRobotServer, error) {
-	body, _ := json.Marshal(&HetznerRobotServerRenameRequestBody{Name: name})
-	res, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/server/%s", c.url, ip), bytes.NewReader(body), http.StatusOK)
+func (c *HetznerRobotClient) getServer(ctx context.Context, serverNumber int) (*HetznerRobotServer, error) {
+	res, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/server/%d", c.url, serverNumber), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,6 @@ func Provider() *schema.Provider {
 			"hetzner-robot_boot":     resourceBoot(),
 			"hetzner-robot_firewall": resourceFirewall(),
 			"hetzner-robot_vswitch":  resourceVSwitch(),
-			"hetzner-robot_server":   resourceServer(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"hetzner-robot_boot":    dataBoot(),

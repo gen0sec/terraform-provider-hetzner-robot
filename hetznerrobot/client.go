@@ -22,7 +22,7 @@ func NewHetznerRobotClient(username string, password string, url string) Hetzner
 	}
 }
 
-func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri string, body io.Reader, expectedStatusCode int) ([]byte, error) {
+func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri string, body io.Reader) ([]byte, error) {
 	r, err := http.NewRequestWithContext(ctx, method, uri, body)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri
 		return nil, err
 	}
 	log.Printf("Hetzner response status %d\n%s", response.StatusCode, bytes)
-	if response.StatusCode != expectedStatusCode {
+	if response.StatusCode > 400 {
 		return nil, fmt.Errorf("Hetzner API response HTTP %d: %s", response.StatusCode, bytes)
 	}
 

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -38,7 +37,7 @@ type HetznerRobotFirewallRule struct {
 
 func (c *HetznerRobotClient) getFirewall(ctx context.Context, ip string) (*HetznerRobotFirewall, error) {
 
-	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/firewall/%s", c.url, ip), nil, http.StatusOK)
+	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/firewall/%s", c.url, ip), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +79,7 @@ func (c *HetznerRobotClient) setFirewall(ctx context.Context, firewall HetznerRo
 	encodedParams := formParams.Encode()
 	log.Println(encodedParams)
 
-	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/firewall/%s", c.url, firewall.IP), strings.NewReader(encodedParams), http.StatusAccepted)
+	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/firewall/%s", c.url, firewall.IP), strings.NewReader(encodedParams))
 	if err != nil {
 		return err
 	}

@@ -38,25 +38,25 @@ func resourceVSwitch() *schema.Resource {
 			},
 			"servers": {
 				Type:        schema.TypeList,
-				Computed:    true,
 				Description: "Attached server list",
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"server_ip": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"server_ipv6_net": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"server_number": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
+						"server_ip": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"server_ipv6_net": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"status": {
 							Type:     schema.TypeString,
-							Required: true,
+							Computed: true,
 						},
 					},
 				},
@@ -183,23 +183,53 @@ func resourceVSwitchUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	vlan := d.Get("vlan").(int)
 	err := c.updateVSwitch(ctx, vSwitchID, name, vlan)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("Unable to update VSwitch :\n\t %q", err))
+		return diag.Errorf("Unable to update VSwitch:\n\t %q", err)
 	}
 
-	vSwitch, err := c.getVSwitch(ctx, vSwitchID)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("Unable to find VSwitch with ID %s:\n\t %q", vSwitchID, err))
+	if d.HasChange("servers") {
+		o, n := d.GetChange("servers")
+
+		oldServers := o.([]interface{})
+		newServers := n.([]interface{})
+
+		mb := make(map[int]struct{}, len(newServers))
+		for _, x := range newServers {
+			srv := x.(map[string]interface{})
+			mb[srv["server_number"].(int)] = struct{}{}
+		}
+		var serversToRemove []HetznerRobotVSwitchServer
+		for _, x := range oldServers {
+			srv := x.(map[string]interface{})
+			srvNum := srv["server_number"].(int)
+			if _, found := mb[srvNum]; !found {
+				serversToRemove = append(serversToRemove, HetznerRobotVSwitchServer{ServerNumber: srvNum})
+			}
+		}
+
+		if err := c.removeVSwitchServers(ctx, vSwitchID, serversToRemove); err != nil {
+			diag.Errorf("Unable to remove servers from VSwitch:\n\t %q", err)
+		}
+
+		ma := make(map[int]struct{}, len(oldServers))
+		for _, x := range oldServers {
+			srv := x.(map[string]interface{})
+			ma[srv["server_number"].(int)] = struct{}{}
+		}
+		var serversToAdd []HetznerRobotVSwitchServer
+		for _, x := range newServers {
+			srv := x.(map[string]interface{})
+			srvNum := srv["server_number"].(int)
+			if _, found := ma[srvNum]; !found {
+				serversToAdd = append(serversToAdd, HetznerRobotVSwitchServer{ServerNumber: srvNum})
+			}
+		}
+
+		if err := c.addVSwitchServers(ctx, vSwitchID, serversToAdd); err != nil {
+			diag.Errorf("Unable to add servers to VSwitch:\n\t %q", err)
+		}
 	}
 
-	d.Set("is_cancelled", vSwitch.Cancelled)
-	d.Set("servers", vSwitch.Server)
-	d.Set("subnets", vSwitch.Subnet)
-	d.Set("cloud_networks", vSwitch.CloudNetwork)
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	return diags
+	return resourceVSwitchRead(ctx, d, meta)
 }
 
 func resourceVSwitchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

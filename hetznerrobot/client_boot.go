@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/tidwall/gjson"
 	"log"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -26,7 +25,7 @@ type BootProfile struct {
 }
 
 func (c *HetznerRobotClient) getBoot(ctx context.Context, serverID string) (*BootProfile, error) {
-	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/boot/%s", c.url, serverID), nil, http.StatusOK)
+	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/boot/%s", c.url, serverID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +73,7 @@ func (c *HetznerRobotClient) setBootProfile(ctx context.Context, serverID string
 	encodedParams := formParams.Encode()
 	log.Println(encodedParams)
 
-	bytes, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/boot/%s/%s", c.url, serverID, activeBootProfile), strings.NewReader(encodedParams), http.StatusOK)
+	bytes, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/boot/%s/%s", c.url, serverID, activeBootProfile), strings.NewReader(encodedParams))
 	if err != nil {
 		if strings.Contains(err.Error(), "BOOT_ALREADY_ENABLED") {
 			return c.getBoot(ctx, serverID)
