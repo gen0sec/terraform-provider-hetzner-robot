@@ -17,7 +17,7 @@ Feel free to submit merge/pull requests.
 # build
 ## local
 ```
-goreleaser release --snapshot --skip-sign --rm-dist
+goreleaser release --snapshot --skip-sign --clean
 ```
 
 ## github

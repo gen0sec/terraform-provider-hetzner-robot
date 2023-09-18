@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -40,7 +39,7 @@ func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri
 		return nil, err
 	}
 	defer response.Body.Close()
-	bytes, err := ioutil.ReadAll(response.Body)
+	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
