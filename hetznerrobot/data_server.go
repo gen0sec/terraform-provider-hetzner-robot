@@ -1,13 +1,14 @@
 package hetznerrobot
 
 import (
-	"fmt"
+	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataServer() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceServerRead,
+		ReadContext: dataSourceServerRead,
 		Schema: map[string]*schema.Schema{
 			"server_name": {
 				Type:        schema.TypeString,
@@ -85,14 +86,14 @@ func dataServer() *schema.Resource {
 	}
 }
 
-func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceServerRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
 	serverID := d.Id()
 
-	server, err := c.getServer(serverID)
+	server, err := c.getServer(ctx, serverID)
 	if err != nil {
-		return fmt.Errorf("Unable to find Server with IP %s:\n\t %q", serverID, err)
+		return diag.Errorf("Unable to find Server with IP %s:\n\t %q", serverID, err)
 	}
 	d.Set("datacenter", server.DataCenter)
 	d.Set("is_cancelled", server.Cancelled)
@@ -107,5 +108,8 @@ func dataSourceServerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("traffic", server.Traffic)
 	d.SetId(serverID)
 
-	return nil
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
+	return diags
 }

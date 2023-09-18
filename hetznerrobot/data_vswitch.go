@@ -1,13 +1,14 @@
 package hetznerrobot
 
 import (
-	"fmt"
+	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataVSwitch() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceVSwitchRead,
+		ReadContext: dataSourceVSwitchRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -99,13 +100,13 @@ func dataVSwitch() *schema.Resource {
 	}
 }
 
-func dataSourceVSwitchRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceVSwitchRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
 	vSwitchID := d.Id()
-	vSwitch, err := c.getVSwitch(vSwitchID)
+	vSwitch, err := c.getVSwitch(ctx, vSwitchID)
 	if err != nil {
-		return fmt.Errorf("Unable to find VSwitch with ID %d:\n\t %q", vSwitchID, err)
+		return diag.Errorf("Unable to find VSwitch with ID %d:\n\t %q", vSwitchID, err)
 	}
 
 	d.Set("name", vSwitch.Name)
@@ -116,5 +117,8 @@ func dataSourceVSwitchRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cloud_networks", vSwitch.CloudNetwork)
 	d.SetId(vSwitchID)
 
-	return nil
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
+	return diags
 }

@@ -1,13 +1,14 @@
 package hetznerrobot
 
 import (
-	"fmt"
+	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataBoot() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceBootRead,
+		ReadContext: dataSourceBootRead,
 		Schema: map[string]*schema.Schema{
 			// read-only / computed
 			"active_profile": {
@@ -53,14 +54,13 @@ func dataBoot() *schema.Resource {
 		*/
 	}
 }
-
-func dataSourceBootRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceBootRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
 	serverID := d.Id()
-	boot, err := c.getBoot(serverID)
+	boot, err := c.getBoot(ctx, serverID)
 	if err != nil {
-		return fmt.Errorf("Unable to find Boot Profile for server ID %d:\n\t %q", serverID, err)
+		return diag.Errorf("Unable to find Boot Profile for server ID %d:\n\t %q", serverID, err)
 	}
 
 	d.Set("active_profile", boot.ActiveProfile)
@@ -72,5 +72,8 @@ func dataSourceBootRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("password", boot.Password)
 	d.SetId(serverID)
 
-	return nil
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
+	return diags
 }

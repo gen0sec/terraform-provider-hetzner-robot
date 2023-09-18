@@ -22,7 +22,7 @@ description: |-
 - `server_ip` (String)
 - `whitelist_hos` (Boolean)
 
-### Optional
+### Read-Only
 
 - `id` (String) The ID of this resource.
 
@@ -41,5 +41,4 @@ Required:
 Optional:
 
 - `protocol` (String)
-
-
+- `tcp_flags` (String)

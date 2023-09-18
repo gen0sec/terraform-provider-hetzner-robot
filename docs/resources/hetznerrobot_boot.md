@@ -23,14 +23,13 @@ description: |-
 
 - `active_profile` (String) Active boot profile
 - `architecture` (String) Active Architecture
-- `id` (String) The ID of this resource.
+- `authorized_keys` (List of String) One or more SSH key fingerprints
 - `language` (String) Language
 - `operating_system` (String) Active Operating System / Distribution
 
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `ipv4_address` (String) Server main IPv4 address
 - `ipv6_network` (String) Server main IPv6 net address
 - `password` (String, Sensitive) Current Rescue System root password / Linux installation password or null
-
-

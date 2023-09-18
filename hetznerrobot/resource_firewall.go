@@ -95,7 +95,7 @@ func resourceFirewallCreate(ctx context.Context, d *schema.ResourceData, m inter
 		})
 	}
 
-	if err := c.setFirewall(HetznerRobotFirewall{
+	if err := c.setFirewall(ctx, HetznerRobotFirewall{
 		IP:                       serverIP,
 		WhitelistHetznerServices: d.Get("whitelist_hos").(bool),
 		Status:                   status,
@@ -117,7 +117,7 @@ func resourceFirewallRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	serverIP := d.Id()
 
-	_, err := c.getFirewall(serverIP)
+	_, err := c.getFirewall(ctx, serverIP)
 	if err != nil {
 		return diag.FromErr(err)
 	}
