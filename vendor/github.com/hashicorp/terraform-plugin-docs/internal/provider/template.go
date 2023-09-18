@@ -1,13 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
 	"bytes"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"text/template"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	tfjson "github.com/hashicorp/terraform-json"
+
 	"github.com/hashicorp/terraform-plugin-docs/internal/mdplain"
 	"github.com/hashicorp/terraform-plugin-docs/internal/tmplfuncs"
 	"github.com/hashicorp/terraform-plugin-docs/schemamd"
@@ -28,19 +36,21 @@ type (
 	docTemplate string
 )
 
-func newTemplate(name, text string) (*template.Template, error) {
+func newTemplate(providerDir, name, text string) (*template.Template, error) {
 	tmpl := template.New(name)
+	titleCaser := cases.Title(language.Und)
 
-	tmpl.Funcs(template.FuncMap(map[string]interface{}{
-		"codefile":      tmplfuncs.CodeFile,
+	tmpl.Funcs(map[string]interface{}{
+		"codefile":      codeFile(providerDir),
+		"lower":         strings.ToLower,
 		"plainmarkdown": mdplain.PlainMarkdown,
 		"prefixlines":   tmplfuncs.PrefixLines,
-		"tffile": func(file string) (string, error) {
-			// TODO: omit comment handling
-			return tmplfuncs.CodeFile("terraform", file)
-		},
-		"trimspace": strings.TrimSpace,
-	}))
+		"split":         strings.Split,
+		"tffile":        terraformCodeFile(providerDir),
+		"title":         titleCaser.String,
+		"trimspace":     strings.TrimSpace,
+		"upper":         strings.ToUpper,
+	})
 
 	var err error
 	tmpl, err = tmpl.Parse(text)
@@ -51,8 +61,29 @@ func newTemplate(name, text string) (*template.Template, error) {
 	return tmpl, nil
 }
 
-func renderTemplate(name string, text string, out io.Writer, data interface{}) error {
-	tmpl, err := newTemplate(name, text)
+func codeFile(providerDir string) func(string, string) (string, error) {
+	return func(format string, file string) (string, error) {
+		if filepath.IsAbs(file) {
+			return tmplfuncs.CodeFile(format, file)
+		}
+
+		return tmplfuncs.CodeFile(format, filepath.Join(providerDir, file))
+	}
+}
+
+func terraformCodeFile(providerDir string) func(string) (string, error) {
+	// TODO: omit comment handling
+	return func(file string) (string, error) {
+		if filepath.IsAbs(file) {
+			return tmplfuncs.CodeFile("terraform", file)
+		}
+
+		return tmplfuncs.CodeFile("terraform", filepath.Join(providerDir, file))
+	}
+}
+
+func renderTemplate(providerDir, name string, text string, out io.Writer, data interface{}) error {
+	tmpl, err := newTemplate(providerDir, name, text)
 	if err != nil {
 		return err
 	}
@@ -65,10 +96,10 @@ func renderTemplate(name string, text string, out io.Writer, data interface{}) e
 	return nil
 }
 
-func renderStringTemplate(name, text string, data interface{}) (string, error) {
+func renderStringTemplate(providerDir, name, text string, data interface{}) (string, error) {
 	var buf bytes.Buffer
 
-	err := renderTemplate(name, text, &buf, data)
+	err := renderTemplate(providerDir, name, text, &buf, data)
 	if err != nil {
 		return "", err
 	}
@@ -76,21 +107,21 @@ func renderStringTemplate(name, text string, data interface{}) (string, error) {
 	return buf.String(), nil
 }
 
-func (t docTemplate) Render(out io.Writer) error {
+func (t docTemplate) Render(providerDir string, out io.Writer) error {
 	s := string(t)
 	if s == "" {
 		return nil
 	}
 
-	return renderTemplate("docTemplate", s, out, nil)
+	return renderTemplate(providerDir, "docTemplate", s, out, nil)
 }
 
-func (t resourceFileTemplate) Render(name, providerName string) (string, error) {
+func (t resourceFileTemplate) Render(providerDir, name, providerName string) (string, error) {
 	s := string(t)
 	if s == "" {
 		return "", nil
 	}
-	return renderStringTemplate("resourceFileTemplate", s, struct {
+	return renderStringTemplate(providerDir, "resourceFileTemplate", s, struct {
 		Name      string
 		ShortName string
 
@@ -105,18 +136,18 @@ func (t resourceFileTemplate) Render(name, providerName string) (string, error) 
 	})
 }
 
-func (t providerFileTemplate) Render(name string) (string, error) {
+func (t providerFileTemplate) Render(providerDir, name string) (string, error) {
 	s := string(t)
 	if s == "" {
 		return "", nil
 	}
-	return renderStringTemplate("providerFileTemplate", s, struct {
+	return renderStringTemplate(providerDir, "providerFileTemplate", s, struct {
 		Name      string
 		ShortName string
 	}{name, providerShortName(name)})
 }
 
-func (t providerTemplate) Render(providerName, exampleFile string, schema *tfjson.Schema) (string, error) {
+func (t providerTemplate) Render(providerDir, providerName, renderedProviderName, exampleFile string, schema *tfjson.Schema) (string, error) {
 	schemaBuffer := bytes.NewBuffer(nil)
 	err := schemamd.Render(schema, schemaBuffer)
 	if err != nil {
@@ -127,35 +158,35 @@ func (t providerTemplate) Render(providerName, exampleFile string, schema *tfjso
 	if s == "" {
 		return "", nil
 	}
-	return renderStringTemplate("providerTemplate", s, struct {
-		Type        string
-		Name        string
+
+	return renderStringTemplate(providerDir, "providerTemplate", s, struct {
 		Description string
 
 		HasExample  bool
 		ExampleFile string
 
-		HasImport  bool
-		ImportFile string
-
 		ProviderName      string
 		ProviderShortName string
 
 		SchemaMarkdown string
+
+		RenderedProviderName string
 	}{
 		Description: schema.Block.Description,
 
-		HasExample:  exampleFile != "",
+		HasExample:  exampleFile != "" && fileExists(exampleFile),
 		ExampleFile: exampleFile,
 
 		ProviderName:      providerName,
 		ProviderShortName: providerShortName(providerName),
 
 		SchemaMarkdown: schemaComment + "\n" + schemaBuffer.String(),
+
+		RenderedProviderName: renderedProviderName,
 	})
 }
 
-func (t resourceTemplate) Render(name, providerName, typeName, exampleFile, importFile string, schema *tfjson.Schema) (string, error) {
+func (t resourceTemplate) Render(providerDir, name, providerName, renderedProviderName, typeName, exampleFile, importFile string, schema *tfjson.Schema) (string, error) {
 	schemaBuffer := bytes.NewBuffer(nil)
 	err := schemamd.Render(schema, schemaBuffer)
 	if err != nil {
@@ -167,7 +198,7 @@ func (t resourceTemplate) Render(name, providerName, typeName, exampleFile, impo
 		return "", nil
 	}
 
-	return renderStringTemplate("resourceTemplate", s, struct {
+	return renderStringTemplate(providerDir, "resourceTemplate", s, struct {
 		Type        string
 		Name        string
 		Description string
@@ -182,21 +213,25 @@ func (t resourceTemplate) Render(name, providerName, typeName, exampleFile, impo
 		ProviderShortName string
 
 		SchemaMarkdown string
+
+		RenderedProviderName string
 	}{
 		Type:        typeName,
 		Name:        name,
 		Description: schema.Block.Description,
 
-		HasExample:  exampleFile != "",
+		HasExample:  exampleFile != "" && fileExists(exampleFile),
 		ExampleFile: exampleFile,
 
-		HasImport:  importFile != "",
+		HasImport:  importFile != "" && fileExists(importFile),
 		ImportFile: importFile,
 
 		ProviderName:      providerName,
 		ProviderShortName: providerShortName(providerName),
 
 		SchemaMarkdown: schemaComment + "\n" + schemaBuffer.String(),
+
+		RenderedProviderName: renderedProviderName,
 	})
 }
 
@@ -219,8 +254,8 @@ description: |-
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
+{{- if .HasImport }}
 
-{{ if .HasImport -}}
 ## Import
 
 Import is supported using the following syntax:
