@@ -84,6 +84,11 @@ func resourceFirewallImportState(ctx context.Context, d *schema.ResourceData, m 
 		return nil, fmt.Errorf("could not find firewall with ID %s: %s", firewallID, err)
 	}
 
+	active := false
+	if firewall.Status == "active" {
+		active = true
+	}
+
 	rules := make([]map[string]interface{}, 0)
 	for _, rule := range firewall.Rules.Input {
 		r := map[string]interface{}{
@@ -99,9 +104,9 @@ func resourceFirewallImportState(ctx context.Context, d *schema.ResourceData, m 
 		rules = append(rules, r)
 	}
 
+	d.Set("active", active)
 	d.Set("rule", rules)
 	d.Set("server_ip", firewall.IP)
-	d.Set("active", firewall.Status)
 	d.Set("whitelist_hos", firewall.WhitelistHetznerServices)
 	d.SetId(firewall.IP)
 
@@ -157,10 +162,34 @@ func resourceFirewallRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	serverIP := d.Id()
 
-	_, err := c.getFirewall(ctx, serverIP)
+	firewall, err := c.getFirewall(ctx, serverIP)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	active := false
+	if firewall.Status == "active" {
+		active = true
+	}
+
+	rules := make([]map[string]interface{}, 0)
+	for _, rule := range firewall.Rules.Input {
+		r := map[string]interface{}{
+			"name":      rule.Name,
+			"src_ip":    rule.SrcIP,
+			"src_port":  rule.SrcPort,
+			"dst_ip":    rule.DstIP,
+			"dst_port":  rule.DstPort,
+			"protocol":  rule.Protocol,
+			"tcp_flags": rule.TCPFlags,
+			"action":    rule.Action,
+		}
+		rules = append(rules, r)
+	}
+	d.Set("active", active)
+	d.Set("rule", rules)
+	d.Set("server_ip", firewall.IP)
+	d.Set("whitelist_hos", firewall.WhitelistHetznerServices)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
