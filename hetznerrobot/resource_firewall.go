@@ -169,7 +169,43 @@ func resourceFirewallRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceFirewallUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	return resourceFirewallRead(ctx, d, m)
+	c := m.(HetznerRobotClient)
+
+	serverIP := d.Get("server_ip").(string)
+
+	status := "disabled"
+	if d.Get("active").(bool) {
+		status = "active"
+	}
+
+	rules := make([]HetznerRobotFirewallRule, 0)
+	for _, ruleMap := range d.Get("rule").([]interface{}) {
+		ruleProperties := ruleMap.(map[string]interface{})
+		rules = append(rules, HetznerRobotFirewallRule{
+			Name:     ruleProperties["name"].(string),
+			SrcIP:    ruleProperties["src_ip"].(string),
+			SrcPort:  ruleProperties["src_port"].(string),
+			DstIP:    ruleProperties["dst_ip"].(string),
+			DstPort:  ruleProperties["dst_port"].(string),
+			Protocol: ruleProperties["protocol"].(string),
+			TCPFlags: ruleProperties["tcp_flags"].(string),
+			Action:   ruleProperties["action"].(string),
+		})
+	}
+
+	if err := c.setFirewall(ctx, HetznerRobotFirewall{
+		IP:                       serverIP,
+		WhitelistHetznerServices: d.Get("whitelist_hos").(bool),
+		Status:                   status,
+		Rules:                    HetznerRobotFirewallRules{Input: rules},
+	}); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
+	return diags
 }
 
 func resourceFirewallDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
