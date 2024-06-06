@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceFirewall() *schema.Resource {
@@ -37,23 +38,23 @@ func resourceFirewall() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"dst_ip": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"dst_port": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"src_ip": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"src_port": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"protocol": {
 							Type:     schema.TypeString,
@@ -64,7 +65,11 @@ func resourceFirewall() *schema.Resource {
 							Optional: true,
 						},
 						"action": {
-							Type:     schema.TypeString,
+							Type: schema.TypeString,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
+								"accept",
+								"discard",
+							}, false)),
 							Required: true,
 						},
 					},

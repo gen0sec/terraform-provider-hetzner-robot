@@ -5,9 +5,11 @@ package hetznerrobot
 import (
 	"context"
 	"fmt"
-	"github.com/tidwall/gjson"
+	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/tidwall/gjson"
 )
 
 type BootProfile struct {
@@ -24,7 +26,7 @@ type BootProfile struct {
 }
 
 func (c *HetznerRobotClient) getBoot(ctx context.Context, serverID string) (*BootProfile, error) {
-	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/boot/%s", c.url, serverID), nil)
+	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/boot/%s", c.url, serverID), nil, []int{http.StatusOK, http.StatusAccepted})
 	if err != nil {
 		return nil, err
 	}
@@ -57,21 +59,20 @@ func (c *HetznerRobotClient) getBoot(ctx context.Context, serverID string) (*Boo
 }
 
 func (c *HetznerRobotClient) setBootProfile(ctx context.Context, serverID string, activeBootProfile string, arch string, os string, lang string, authorizedKeys []string) (*BootProfile, error) {
-	formParams := url.Values{}
-	formParams.Set("arch", arch)
+	data := url.Values{}
+	data.Set("arch", arch)
 	for _, key := range authorizedKeys {
-		formParams.Add("authorized_key", key)
+		data.Add("authorized_key", key)
 	}
 	if activeBootProfile == "linux" {
-		formParams.Set("dist", os)
-		formParams.Set("lang", lang)
+		data.Set("dist", os)
+		data.Set("lang", lang)
 	}
 	if activeBootProfile == "rescue" {
-		formParams.Set("os", os)
+		data.Set("os", os)
 	}
-	encodedParams := formParams.Encode()
 
-	bytes, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/boot/%s/%s", c.url, serverID, activeBootProfile), strings.NewReader(encodedParams))
+	bytes, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/boot/%s/%s", c.url, serverID, activeBootProfile), data, []int{http.StatusOK, http.StatusAccepted})
 	if err != nil {
 		if strings.Contains(err.Error(), "BOOT_ALREADY_ENABLED") {
 			return c.getBoot(ctx, serverID)

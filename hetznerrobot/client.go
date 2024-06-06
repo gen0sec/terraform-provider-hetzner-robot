@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -23,45 +25,55 @@ func NewHetznerRobotClient(username string, password string, url string) Hetzner
 	}
 }
 
-func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri string, body io.Reader) ([]byte, error) {
+func codeIsInExpected(statusCode int, expectedStatusCodes []int) bool {
+	for _, expectedStatusCode := range expectedStatusCodes {
+		if statusCode == expectedStatusCode {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri string, data url.Values, expectedStatusCodes []int) ([]byte, error) {
 	tflog.Debug(ctx, "requesting Hetzner webservice", map[string]interface{}{
 		"uri":    uri,
 		"method": method,
-		"body":   body,
+		"data":   data,
 	})
 
-	r, err := http.NewRequestWithContext(ctx, method, uri, body)
+	request, err := http.NewRequestWithContext(ctx, method, uri, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
-	if body != nil {
-		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if data != nil {
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	r.SetBasicAuth(c.username, c.password)
+	request.SetBasicAuth(c.username, c.password)
 
 	client := http.Client{}
 
-	response, err := client.Do(r)
+	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %v", err)
 	}
 
 	defer response.Body.Close()
 
-	bytes, err := io.ReadAll(response.Body)
+	responseBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	tflog.Debug(ctx, "got hetzner webservice response", map[string]interface{}{
 		"status": response.StatusCode,
-		"body":   bytes,
+		"body":   string(responseBytes),
 	})
 
-	if response.StatusCode > 400 {
-		return nil, fmt.Errorf("hetzner webservice response status %d: %s", response.StatusCode, bytes)
+	if !codeIsInExpected(response.StatusCode, expectedStatusCodes) {
+		return nil, fmt.Errorf("hetzner webservice response status %d: %s", response.StatusCode, responseBytes)
 	}
 
-	return bytes, nil
+	return responseBytes, nil
 }
