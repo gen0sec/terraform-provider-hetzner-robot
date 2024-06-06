@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type HetznerRobotClient struct {
@@ -23,6 +24,12 @@ func NewHetznerRobotClient(username string, password string, url string) Hetzner
 }
 
 func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri string, body io.Reader) ([]byte, error) {
+	tflog.Debug(ctx, "requesting Hetzner webservice", map[string]interface{}{
+		"uri":    uri,
+		"method": method,
+		"body":   body,
+	})
+
 	r, err := http.NewRequestWithContext(ctx, method, uri, body)
 	if err != nil {
 		return nil, err
@@ -34,18 +41,26 @@ func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri
 	r.SetBasicAuth(c.username, c.password)
 
 	client := http.Client{}
+
 	response, err := client.Do(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error sending request: %v", err)
 	}
+
 	defer response.Body.Close()
+
 	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Hetzner response status %d\n%s", response.StatusCode, bytes)
+
+	tflog.Debug(ctx, "got hetzner webservice response", map[string]interface{}{
+		"status": response.StatusCode,
+		"body":   bytes,
+	})
+
 	if response.StatusCode > 400 {
-		return nil, fmt.Errorf("Hetzner API response HTTP %d: %s", response.StatusCode, bytes)
+		return nil, fmt.Errorf("hetzner webservice response status %d: %s", response.StatusCode, bytes)
 	}
 
 	return bytes, nil

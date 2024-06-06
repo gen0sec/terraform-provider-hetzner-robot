@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 )
@@ -77,7 +76,6 @@ func (c *HetznerRobotClient) setFirewall(ctx context.Context, firewall HetznerRo
 	}
 
 	encodedParams := formParams.Encode()
-	log.Println(encodedParams)
 
 	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/firewall/%s", c.url, firewall.IP), strings.NewReader(encodedParams))
 	if err != nil {

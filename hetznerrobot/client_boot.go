@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/tidwall/gjson"
-	"log"
 	"net/url"
 	"strings"
 )
@@ -71,7 +70,6 @@ func (c *HetznerRobotClient) setBootProfile(ctx context.Context, serverID string
 		formParams.Set("os", os)
 	}
 	encodedParams := formParams.Encode()
-	log.Println(encodedParams)
 
 	bytes, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/boot/%s/%s", c.url, serverID, activeBootProfile), strings.NewReader(encodedParams))
 	if err != nil {
