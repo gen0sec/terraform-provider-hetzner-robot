@@ -29,3 +29,11 @@ output "product_install_options" {
     arch = data.hetzner-robot_server_product.selected.arch
   }
 }
+
+output "rdns" {
+  description = "The PTR record set for rdns_ip (null when not configured)."
+  value = length(hetzner-robot_rdns.node) > 0 ? {
+    ip  = hetzner-robot_rdns.node[0].ip
+    ptr = hetzner-robot_rdns.node[0].ptr
+  } : null
+}

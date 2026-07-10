@@ -31,3 +31,17 @@ variable "location" {
   description = "Datacenter location the product supports (e.g. FSN1 or HEL1)."
   default     = "FSN1"
 }
+
+# (Optional) set a reverse-DNS (PTR) record. Opt-in: both must be set, otherwise
+# no rDNS change is made — so this never touches an existing server by default.
+variable "rdns_ip" {
+  type        = string
+  description = "IP to set a PTR record for. Leave empty to skip."
+  default     = ""
+}
+
+variable "rdns_ptr" {
+  type        = string
+  description = "PTR hostname to set for rdns_ip."
+  default     = ""
+}

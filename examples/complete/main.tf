@@ -52,6 +52,14 @@ resource "hetzner-robot_server_order" "validate" {
   test = true
 }
 
+# 4. (Optional) Set a reverse-DNS (PTR) record. Opt-in: only when both rdns_ip
+#    and rdns_ptr are set — e.g. point a node's IP at its k8s hostname.
+resource "hetzner-robot_rdns" "node" {
+  count = var.rdns_ip != "" && var.rdns_ptr != "" ? 1 : 0
+  ip    = var.rdns_ip
+  ptr   = var.rdns_ptr
+}
+
 # ----------------------------------------------------------------------------
 # Once you have a real server (ordered above with test=false, or an existing
 # one), this is the boot -> reset flow that installs Ubuntu and gets you SSH.
