@@ -31,6 +31,7 @@ func Provider() *schema.Provider {
 			"hetzner-robot_firewall": resourceFirewall(),
 			"hetzner-robot_ssh_key":  resourceSshKey(),
 			"hetzner-robot_vswitch":  resourceVSwitch(),
+			"hetzner-robot_reset":    resourceReset(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"hetzner-robot_boot":    dataBoot(),

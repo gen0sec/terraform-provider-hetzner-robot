@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
+	"github.com/gen0sec/terraform-provider-hetzner-robot/hetznerrobot"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/strng-solutions/terraform-provider-hetzner-robot/hetznerrobot"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
@@ -25,7 +25,7 @@ func main() {
 
 	opts := &plugin.ServeOpts{
 		Debug:        debug,
-		ProviderAddr: "registry.terraform.io/strng-solutions/hetzner-robot",
+		ProviderAddr: "registry.terraform.io/gen0sec/hetzner-robot",
 		ProviderFunc: func() *schema.Provider {
 			return hetznerrobot.Provider()
 		},
