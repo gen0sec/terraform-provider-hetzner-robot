@@ -4,21 +4,25 @@ provider "hetzner-robot" {
   # (or set username/password here directly).
 }
 
-# 1. (Optional) Upload a new SSH public key to the Robot key store. Only created
-#    when var.ssh_public_key is set; otherwise reference an existing key by
-#    fingerprint via var.ssh_key_fingerprint.
+# 1a. (Optional) Reference an EXISTING key by name — looked up via GET /key.
+data "hetzner-robot_ssh_key" "existing" {
+  count = var.existing_ssh_key_name != "" ? 1 : 0
+  name  = var.existing_ssh_key_name
+}
+
+# 1b. (Optional) Upload a NEW key. Only created when var.ssh_public_key is set.
 resource "hetzner-robot_ssh_key" "node" {
   count = var.ssh_public_key != "" ? 1 : 0
-  name  = var.ssh_key_name
+  name  = var.upload_key_name
   data  = var.ssh_public_key
 }
 
 locals {
-  # authorize the uploaded key's fingerprint and/or an existing one; empties dropped.
-  authorized_key_fingerprints = compact([
-    var.ssh_public_key != "" ? hetzner-robot_ssh_key.node[0].fingerprint : "",
-    var.ssh_key_fingerprint,
-  ])
+  # authorize the existing and/or uploaded key fingerprints; empties dropped.
+  authorized_key_fingerprints = compact(concat(
+    [for k in data.hetzner-robot_ssh_key.existing : k.fingerprint],
+    [for k in hetzner-robot_ssh_key.node : k.fingerprint],
+  ))
 }
 
 # 2. Read-only lookups: what can we order, and what do we already have?

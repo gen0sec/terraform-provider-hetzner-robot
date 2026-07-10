@@ -78,3 +78,23 @@ func (c *HetznerRobotClient) deleteSshKey(ctx context.Context, keyFingerprint st
 
 	return nil
 }
+
+// getSshKeyByName looks up a key by its name via GET /key (which returns all
+// keys with their names and fingerprints).
+func (c *HetznerRobotClient) getSshKeyByName(ctx context.Context, name string) (*SshKey, error) {
+	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/key", c.url), nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+
+	var wrappers []SshKeyWrapper
+	if err = json.Unmarshal(bytes, &wrappers); err != nil {
+		return nil, err
+	}
+	for i := range wrappers {
+		if wrappers[i].Key.Name == name {
+			return &wrappers[i].Key, nil
+		}
+	}
+	return nil, fmt.Errorf("no SSH key found with name %q", name)
+}

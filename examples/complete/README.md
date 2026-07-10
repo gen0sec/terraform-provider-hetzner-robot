@@ -9,17 +9,17 @@ A safe, runnable walkthrough of the provider:
 The `boot` → `reset` install flow is included but commented out (it reinstalls a real machine).
 
 ## What you add
-An SSH key — **either** upload a new one **or** reference an existing one. Copy the example tfvars and set one of:
+An SSH key — **either** reference an existing one by **name** **or** upload a new one. Copy the example tfvars and set one of:
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
-# (a) upload a new key:   ssh_public_key      = "ssh-ed25519 AAAA... you@host"
-# (b) use an existing one: ssh_key_fingerprint = "aa:bb:cc:...:99"
+# (a) existing key by name: existing_ssh_key_name = "k8s-node-key"
+# (b) upload a new key:      ssh_public_key        = "ssh-ed25519 AAAA... you@host"
 ```
 
-Note: an existing key can only be referenced by its **fingerprint**, not its name
-(the provider's `ssh_key` data source looks up by fingerprint). Both are optional —
-with neither set, the test order simply authorizes no key.
+The `hetzner-robot_ssh_key` data source resolves a key by **name** (via `GET /key`)
+or by fingerprint. Both inputs are optional — with neither set, the test order
+simply authorizes no key.
 
 Credentials come from the environment:
 

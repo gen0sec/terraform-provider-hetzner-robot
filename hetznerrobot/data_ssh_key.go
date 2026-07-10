@@ -12,9 +12,11 @@ func dataSshKey() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Key name",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "Key name. Provide either name or fingerprint to look up a key.",
+				ExactlyOneOf: []string{"name", "fingerprint"},
 			},
 			"data": {
 				Type:        schema.TypeString,
@@ -22,9 +24,11 @@ func dataSshKey() *schema.Resource {
 				Description: "Key data in OpenSSH or SSH2 format",
 			},
 			"fingerprint": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Key fingerprint",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "Key fingerprint. Provide either name or fingerprint to look up a key.",
+				ExactlyOneOf: []string{"name", "fingerprint"},
 			},
 			"type": {
 				Type:        schema.TypeString,
@@ -48,11 +52,15 @@ func dataSshKey() *schema.Resource {
 func dataSourceSshKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	keyFingerprint := d.Get("fingerprint").(string)
-
-	key, err := c.getSshKey(ctx, keyFingerprint)
+	var key *SshKey
+	var err error
+	if fingerprint := d.Get("fingerprint").(string); fingerprint != "" {
+		key, err = c.getSshKey(ctx, fingerprint)
+	} else {
+		key, err = c.getSshKeyByName(ctx, d.Get("name").(string))
+	}
 	if err != nil {
-		return diag.Errorf("Unable to find SSH key %q:\n\t %q", keyFingerprint, err)
+		return diag.FromErr(err)
 	}
 
 	d.Set("name", key.Name)
