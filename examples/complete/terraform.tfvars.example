@@ -1,7 +1,13 @@
-# The one thing you add: your SSH PUBLIC key.
+# Provide ONE of the following:
+
+# (a) upload a NEW key — paste your SSH PUBLIC key:
 ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILExampleReplaceMe you@host"
+# ssh_key_name = "k8s-node-key"   # label for the uploaded key (optional)
+
+# (b) OR reference an EXISTING key already in your Robot key store, by fingerprint
+#     (find it in the Robot UI under "Key management", or via GET /key):
+# ssh_key_fingerprint = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
 
 # Optional overrides:
-# ssh_key_name = "k8s-node-key"
-# product_id   = "EX44"
-# location     = "FSN1"
+# product_id = "EX44"
+# location   = "FSN1"

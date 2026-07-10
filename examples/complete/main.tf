@@ -4,11 +4,21 @@ provider "hetzner-robot" {
   # (or set username/password here directly).
 }
 
-# 1. Upload your SSH public key to the Robot key store. Returns a fingerprint
-#    that boot/order use to authorize root access on a server.
+# 1. (Optional) Upload a new SSH public key to the Robot key store. Only created
+#    when var.ssh_public_key is set; otherwise reference an existing key by
+#    fingerprint via var.ssh_key_fingerprint.
 resource "hetzner-robot_ssh_key" "node" {
-  name = var.ssh_key_name
-  data = var.ssh_public_key
+  count = var.ssh_public_key != "" ? 1 : 0
+  name  = var.ssh_key_name
+  data  = var.ssh_public_key
+}
+
+locals {
+  # authorize the uploaded key's fingerprint and/or an existing one; empties dropped.
+  authorized_key_fingerprints = compact([
+    var.ssh_public_key != "" ? hetzner-robot_ssh_key.node[0].fingerprint : "",
+    var.ssh_key_fingerprint,
+  ])
 }
 
 # 2. Read-only lookups: what can we order, and what do we already have?
@@ -24,7 +34,7 @@ resource "hetzner-robot_server_order" "validate" {
   location        = var.location
   dist            = "Ubuntu 24.04 LTS minimal"
   lang            = "en"
-  authorized_keys = [hetzner-robot_ssh_key.node.fingerprint]
+  authorized_keys = local.authorized_key_fingerprints
 
   test = true
 }
@@ -39,7 +49,7 @@ resource "hetzner-robot_server_order" "validate" {
 #   active_profile   = "linux"
 #   operating_system = "Ubuntu 24.04 LTS minimal"
 #   language         = "en"
-#   authorized_keys  = [hetzner-robot_ssh_key.node.fingerprint]
+#   authorized_keys  = local.authorized_key_fingerprints
 # }
 #
 # resource "hetzner-robot_reset" "node" {

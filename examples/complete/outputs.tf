@@ -1,6 +1,6 @@
-output "uploaded_key_fingerprint" {
-  description = "Fingerprint of the SSH key uploaded to the Robot key store."
-  value       = hetzner-robot_ssh_key.node.fingerprint
+output "authorized_key_fingerprints" {
+  description = "Fingerprints authorized on the order (uploaded and/or existing)."
+  value       = local.authorized_key_fingerprints
 }
 
 output "available_product_ids" {
