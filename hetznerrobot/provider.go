@@ -33,6 +33,7 @@ func Provider() *schema.Provider {
 			"hetzner-robot_vswitch":      resourceVSwitch(),
 			"hetzner-robot_reset":        resourceReset(),
 			"hetzner-robot_server_order": resourceServerOrder(),
+			"hetzner-robot_rdns":         resourceRdns(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"hetzner-robot_boot":            dataBoot(),
@@ -42,6 +43,7 @@ func Provider() *schema.Provider {
 			"hetzner-robot_vswitch":         dataVSwitch(),
 			"hetzner-robot_server_products": dataServerProducts(),
 			"hetzner-robot_server_product":  dataServerProduct(),
+			"hetzner-robot_rdns":            dataRdns(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
