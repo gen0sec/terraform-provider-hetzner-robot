@@ -183,6 +183,10 @@ func dataServers() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
+						"server_name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"server_ip": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -301,6 +305,7 @@ func dataSourceServersRead(ctx context.Context, d *schema.ResourceData, meta int
 
 		serverMap := map[string]interface{}{
 			"server_number":     server.ServerNumber,
+			"server_name":       server.ServerName,
 			"server_ip":         server.ServerIP,
 			"server_ipv6":       server.ServerIPv6,
 			"datacenter":        server.DataCenter,
