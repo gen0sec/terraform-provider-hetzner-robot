@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/gen0sec/terraform-provider-hetzner-robot/hetznerrobot"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/peters-it/terraform-provider-hetzner-robot/hetznerrobot"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
