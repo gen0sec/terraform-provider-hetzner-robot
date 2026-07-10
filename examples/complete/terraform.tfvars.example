@@ -1,0 +1,7 @@
+# The one thing you add: your SSH PUBLIC key.
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILExampleReplaceMe you@host"
+
+# Optional overrides:
+# ssh_key_name = "k8s-node-key"
+# product_id   = "EX44"
+# location     = "FSN1"
