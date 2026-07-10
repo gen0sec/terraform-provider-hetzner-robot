@@ -1,12 +1,11 @@
 package hetznerrobot
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 type HetznerRobotFirewallResponse struct {
@@ -35,9 +34,9 @@ type HetznerRobotFirewallRule struct {
 	Action   string `json:"action"`
 }
 
-func (c *HetznerRobotClient) getFirewall(ip string) (*HetznerRobotFirewall, error) {
+func (c *HetznerRobotClient) getFirewall(ctx context.Context, ip string) (*HetznerRobotFirewall, error) {
 
-	bytes, err := c.makeAPICall("GET", fmt.Sprintf("%s/firewall/%s", c.url, ip), nil, http.StatusOK)
+	bytes, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/firewall/%s", c.url, ip), nil, []int{http.StatusOK, http.StatusAccepted})
 	if err != nil {
 		return nil, err
 	}
@@ -49,37 +48,44 @@ func (c *HetznerRobotClient) getFirewall(ip string) (*HetznerRobotFirewall, erro
 	return &firewall.Firewall, nil
 }
 
-func (c *HetznerRobotClient) setFirewall(firewall HetznerRobotFirewall) error {
-	formParams := url.Values{}
+func (c *HetznerRobotClient) setFirewall(ctx context.Context, firewall HetznerRobotFirewall) error {
+	data := url.Values{}
 
 	whitelistHOS := "false"
 	if firewall.WhitelistHetznerServices {
 		whitelistHOS = "true"
 	}
 
-	formParams.Set("whitelist_hos", whitelistHOS)
-	formParams.Set("status", firewall.Status)
+	data.Set("whitelist_hos", whitelistHOS)
+	data.Set("status", firewall.Status)
 
 	for idx, rule := range firewall.Rules.Input {
-		formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "ip_version"), "ipv4")
-		formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "name"), rule.Name)
-		formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "dst_ip"), rule.DstIP)
-		formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "dst_port"), rule.DstPort)
-		formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "src_ip"), rule.SrcIP)
-		formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "src_port"), rule.SrcPort)
+		data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "ip_version"), "ipv4")
+		if rule.Name != "" {
+			data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "name"), rule.Name)
+		}
+		if rule.DstIP != "" {
+			data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "dst_ip"), rule.DstIP)
+		}
+		if rule.DstPort != "" {
+			data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "dst_port"), rule.DstPort)
+		}
+		if rule.SrcIP != "" {
+			data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "src_ip"), rule.SrcIP)
+		}
+		if rule.SrcPort != "" {
+			data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "src_port"), rule.SrcPort)
+		}
 		if rule.Protocol != "" {
-			formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "protocol"), rule.Protocol)
+			data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "protocol"), rule.Protocol)
 		}
 		if rule.TCPFlags != "" {
-			formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "tcp_flags"), rule.TCPFlags)
+			data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "tcp_flags"), rule.TCPFlags)
 		}
-		formParams.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "action"), rule.Action)
+		data.Set(fmt.Sprintf("rules[input][%d][%s]", idx, "action"), rule.Action)
 	}
 
-	encodedParams := formParams.Encode()
-	log.Println(encodedParams)
-
-	_, err := c.makeAPICall("POST", fmt.Sprintf("%s/firewall/%s", c.url, firewall.IP), strings.NewReader(encodedParams), http.StatusAccepted)
+	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/firewall/%s", c.url, firewall.IP), data, []int{http.StatusOK, http.StatusAccepted})
 	if err != nil {
 		return err
 	}

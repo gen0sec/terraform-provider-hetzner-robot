@@ -1,32 +1,22 @@
 package hetznerrobot
 
 import (
-	"fmt"
+	"context"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataBoot() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceBootRead,
+		ReadContext: dataSourceBootRead,
 		Schema: map[string]*schema.Schema{
-			"server_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Server ID",
-			},
-
 			// read-only / computed
 			"active_profile": {
 				Type:        schema.TypeString, // Enum should be better (linux/rescue/...)
 				Computed:    true,
 				Description: "Active boot profile",
-			},
-			"architecture": {
-				Type:        schema.TypeString, // Enum should be better (amd64/...)
-				Computed:    true,
-				Description: "Active Architecture",
 			},
 			"ipv4_address": {
 				Type:        schema.TypeString,
@@ -61,25 +51,29 @@ func dataBoot() *schema.Resource {
 		*/
 	}
 }
-
-func dataSourceBootRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceBootRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID := d.Get("server_id").(int)
-	boot, err := c.getBoot(serverID)
+	serverNumber, err := strconv.Atoi(d.Id())
 	if err != nil {
-		return fmt.Errorf("Unable to find Boot Profile for server ID %d:\n\t %q", serverID, err)
+		return diag.FromErr(err)
+	}
+
+	boot, err := c.getBoot(ctx, serverNumber)
+	if err != nil {
+		return diag.Errorf("Unable to find Boot Profile for server ID %d:\n\t %q", serverNumber, err)
 	}
 
 	d.Set("active_profile", boot.ActiveProfile)
-	d.Set("architecture", boot.Architecture)
 	d.Set("ipv4_address", boot.ServerIPv4)
 	d.Set("ipv6_network", boot.ServerIPv6)
 	d.Set("language", boot.Language)
 	d.Set("operating_system", boot.OperatingSystem)
 	d.Set("password", boot.Password)
-	d.Set("server_id", serverID)
-	d.SetId(strconv.Itoa(serverID))
+	d.SetId(strconv.Itoa(serverNumber))
 
-	return nil
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
+	return diags
 }

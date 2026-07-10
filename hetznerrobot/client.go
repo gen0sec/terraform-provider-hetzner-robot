@@ -1,11 +1,14 @@
 package hetznerrobot
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type HetznerRobotClient struct {
@@ -22,31 +25,55 @@ func NewHetznerRobotClient(username string, password string, url string) Hetzner
 	}
 }
 
-func (c *HetznerRobotClient) makeAPICall(method string, uri string, body io.Reader, expectedStatusCode int) ([]byte, error) {
-	r, err := http.NewRequest(method, uri, body)
+func codeIsInExpected(statusCode int, expectedStatusCodes []int) bool {
+	for _, expectedStatusCode := range expectedStatusCodes {
+		if statusCode == expectedStatusCode {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *HetznerRobotClient) makeAPICall(ctx context.Context, method string, uri string, data url.Values, expectedStatusCodes []int) ([]byte, error) {
+	tflog.Debug(ctx, "requesting Hetzner webservice", map[string]interface{}{
+		"uri":    uri,
+		"method": method,
+		"data":   data,
+	})
+
+	request, err := http.NewRequestWithContext(ctx, method, uri, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
-	if body != nil {
-		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if data != nil {
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	r.SetBasicAuth(c.username, c.password)
+	request.SetBasicAuth(c.username, c.password)
 
 	client := http.Client{}
-	response, err := client.Do(r)
+
+	response, err := client.Do(request)
 	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	bytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("Hetzner response status %d\n%s", response.StatusCode, bytes)
-	if response.StatusCode != expectedStatusCode {
-		return nil, fmt.Errorf("Hetzner API response HTTP %d: %s", response.StatusCode, bytes)
+		return nil, fmt.Errorf("error sending request: %v", err)
 	}
 
-	return bytes, nil
+	defer response.Body.Close()
+
+	responseBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	tflog.Debug(ctx, "got hetzner webservice response", map[string]interface{}{
+		"status": response.StatusCode,
+		"body":   string(responseBytes),
+	})
+
+	if !codeIsInExpected(response.StatusCode, expectedStatusCodes) {
+		return nil, fmt.Errorf("hetzner webservice response status %d: %s", response.StatusCode, responseBytes)
+	}
+
+	return responseBytes, nil
 }

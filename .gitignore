@@ -1,1 +1,11 @@
 /dist/
+.idea/
+.DS_Store
+# built provider binary
+/terraform-provider-hetzner-robot
+# local terraform config, state, and vars (keep *.tfvars.example)
+*.tfrc
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate*

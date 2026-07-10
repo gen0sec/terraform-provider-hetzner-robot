@@ -19,11 +19,11 @@ func resourceReset() *schema.Resource {
 		ReadContext:   resourceResetRead,
 		DeleteContext: resourceResetDelete,
 		Schema: map[string]*schema.Schema{
-			"server_id": {
+			"server_number": {
 				Type:        schema.TypeInt,
 				Required:    true,
 				ForceNew:    true,
-				Description: "ID of the server to reset",
+				Description: "Number of the server to reset",
 			},
 			"reset_type": {
 				Type:         schema.TypeString,
@@ -46,11 +46,11 @@ func resourceReset() *schema.Resource {
 
 func resourceResetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
-	serverID := d.Get("server_id").(int)
-	if err := c.resetServer(serverID, d.Get("reset_type").(string)); err != nil {
+	serverNumber := d.Get("server_number").(int)
+	if err := c.resetServer(ctx, serverNumber, d.Get("reset_type").(string)); err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(strconv.Itoa(serverID))
+	d.SetId(strconv.Itoa(serverNumber))
 	return nil
 }
 

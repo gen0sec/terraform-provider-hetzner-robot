@@ -1,0 +1,16 @@
+# Provide ONE of the following (both optional):
+
+# (a) reference an EXISTING key already in your Robot key store, by NAME:
+existing_ssh_key_name = "k8s-node-key"
+
+# (b) OR upload a NEW key — paste your SSH PUBLIC key:
+# ssh_public_key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILExampleReplaceMe you@host"
+# upload_key_name = "k8s-node-key"
+
+# Optional overrides:
+# product_id = "AX42-1"   # e.g. AX42-1, EX63-1, AX162-1
+# location   = "FSN1"
+
+# (Optional) set reverse DNS for an IP — both required to take effect:
+# rdns_ip  = "1.2.3.4"
+# rdns_ptr = "node1.k8s.example.com"

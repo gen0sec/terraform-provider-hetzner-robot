@@ -2,9 +2,11 @@ package hetznerrobot
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceFirewall() *schema.Resource {
@@ -13,6 +15,9 @@ func resourceFirewall() *schema.Resource {
 		ReadContext:   resourceFirewallRead,
 		UpdateContext: resourceFirewallUpdate,
 		DeleteContext: resourceFirewallDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceFirewallImportState,
+		},
 		Schema: map[string]*schema.Schema{
 			"server_ip": {
 				Type:     schema.TypeString,
@@ -33,23 +38,23 @@ func resourceFirewall() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"dst_ip": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"dst_port": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"src_ip": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"src_port": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"protocol": {
 							Type:     schema.TypeString,
@@ -60,7 +65,11 @@ func resourceFirewall() *schema.Resource {
 							Optional: true,
 						},
 						"action": {
-							Type:     schema.TypeString,
+							Type: schema.TypeString,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
+								"accept",
+								"discard",
+							}, false)),
 							Required: true,
 						},
 					},
@@ -68,6 +77,47 @@ func resourceFirewall() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceFirewallImportState(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	c := m.(HetznerRobotClient)
+
+	firewallID := d.Id()
+
+	firewall, err := c.getFirewall(ctx, firewallID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find firewall with ID %s: %s", firewallID, err)
+	}
+
+	active := false
+	if firewall.Status == "active" {
+		active = true
+	}
+
+	rules := make([]map[string]interface{}, 0)
+	for _, rule := range firewall.Rules.Input {
+		r := map[string]interface{}{
+			"name":      rule.Name,
+			"src_ip":    rule.SrcIP,
+			"src_port":  rule.SrcPort,
+			"dst_ip":    rule.DstIP,
+			"dst_port":  rule.DstPort,
+			"protocol":  rule.Protocol,
+			"tcp_flags": rule.TCPFlags,
+			"action":    rule.Action,
+		}
+		rules = append(rules, r)
+	}
+
+	d.Set("active", active)
+	d.Set("rule", rules)
+	d.Set("server_ip", firewall.IP)
+	d.Set("whitelist_hos", firewall.WhitelistHetznerServices)
+	d.SetId(firewall.IP)
+
+	results := make([]*schema.ResourceData, 1)
+	results[0] = d
+	return results, nil
 }
 
 func resourceFirewallCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -95,7 +145,7 @@ func resourceFirewallCreate(ctx context.Context, d *schema.ResourceData, m inter
 		})
 	}
 
-	if err := c.setFirewall(HetznerRobotFirewall{
+	if err := c.setFirewall(ctx, HetznerRobotFirewall{
 		IP:                       serverIP,
 		WhitelistHetznerServices: d.Get("whitelist_hos").(bool),
 		Status:                   status,
@@ -117,10 +167,34 @@ func resourceFirewallRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	serverIP := d.Id()
 
-	_, err := c.getFirewall(serverIP)
+	firewall, err := c.getFirewall(ctx, serverIP)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	active := false
+	if firewall.Status == "active" {
+		active = true
+	}
+
+	rules := make([]map[string]interface{}, 0)
+	for _, rule := range firewall.Rules.Input {
+		r := map[string]interface{}{
+			"name":      rule.Name,
+			"src_ip":    rule.SrcIP,
+			"src_port":  rule.SrcPort,
+			"dst_ip":    rule.DstIP,
+			"dst_port":  rule.DstPort,
+			"protocol":  rule.Protocol,
+			"tcp_flags": rule.TCPFlags,
+			"action":    rule.Action,
+		}
+		rules = append(rules, r)
+	}
+	d.Set("active", active)
+	d.Set("rule", rules)
+	d.Set("server_ip", firewall.IP)
+	d.Set("whitelist_hos", firewall.WhitelistHetznerServices)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -129,7 +203,43 @@ func resourceFirewallRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceFirewallUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	return resourceFirewallRead(ctx, d, m)
+	c := m.(HetznerRobotClient)
+
+	serverIP := d.Get("server_ip").(string)
+
+	status := "disabled"
+	if d.Get("active").(bool) {
+		status = "active"
+	}
+
+	rules := make([]HetznerRobotFirewallRule, 0)
+	for _, ruleMap := range d.Get("rule").([]interface{}) {
+		ruleProperties := ruleMap.(map[string]interface{})
+		rules = append(rules, HetznerRobotFirewallRule{
+			Name:     ruleProperties["name"].(string),
+			SrcIP:    ruleProperties["src_ip"].(string),
+			SrcPort:  ruleProperties["src_port"].(string),
+			DstIP:    ruleProperties["dst_ip"].(string),
+			DstPort:  ruleProperties["dst_port"].(string),
+			Protocol: ruleProperties["protocol"].(string),
+			TCPFlags: ruleProperties["tcp_flags"].(string),
+			Action:   ruleProperties["action"].(string),
+		})
+	}
+
+	if err := c.setFirewall(ctx, HetznerRobotFirewall{
+		IP:                       serverIP,
+		WhitelistHetznerServices: d.Get("whitelist_hos").(bool),
+		Status:                   status,
+		Rules:                    HetznerRobotFirewallRules{Input: rules},
+	}); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
+	return diags
 }
 
 func resourceFirewallDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

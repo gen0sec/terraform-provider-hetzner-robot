@@ -2,9 +2,11 @@ package hetznerrobot
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"strconv"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceBoot() *schema.Resource {
@@ -15,25 +17,21 @@ func resourceBoot() *schema.Resource {
 		DeleteContext: resourceBootDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: resourceBootImportState,
+			StateContext: resourceBootImportState,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"server_id": {
+			"server_number": {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "Server ID",
 			},
 			// optional
 			"active_profile": {
-				Type:        schema.TypeString, // Enum should be better (linux/rescue/...)
-				Optional:    true,
-				Description: "Active boot profile",
-			},
-			"architecture": {
-				Type:        schema.TypeString, // Enum should be better (amd64/...)
-				Optional:    true,
-				Description: "Active Architecture",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Active boot profile: linux, rescue, vnc, or windows",
+				ValidateFunc: validation.StringInSlice([]string{"linux", "rescue", "vnc", "windows"}, false),
 			},
 			"language": {
 				Type:        schema.TypeString, // Enum should be better (amd64/...)
@@ -74,24 +72,26 @@ func resourceBoot() *schema.Resource {
 	}
 }
 
-func resourceBootImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceBootImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	c := meta.(HetznerRobotClient)
 
-	serverID, _ := strconv.Atoi(d.Id())
+	serverNumber, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return nil, err
+	}
 
-	boot, err := c.getBoot(serverID)
+	boot, err := c.getBoot(ctx, serverNumber)
 	if err != nil {
 		return nil, err
 	}
 
 	d.Set("active_profile", boot.ActiveProfile)
-	d.Set("architecture", boot.Architecture)
 	d.Set("ipv4_address", boot.ServerIPv4)
 	d.Set("ipv6_network", boot.ServerIPv6)
 	d.Set("language", boot.Language)
 	d.Set("operating_system", boot.OperatingSystem)
 	d.Set("password", boot.Password)
-	d.Set("server_id", serverID)
+	d.Set("server_number", serverNumber)
 
 	results := make([]*schema.ResourceData, 1)
 	results[0] = d
@@ -101,9 +101,8 @@ func resourceBootImportState(d *schema.ResourceData, meta interface{}) ([]*schem
 func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID := d.Get("server_id").(int)
+	serverNumber := d.Get("server_number").(int)
 	activeBootProfile := d.Get("active_profile").(string)
-	arch := d.Get("architecture").(string)
 	os := d.Get("operating_system").(string)
 	lang := d.Get("language").(string)
 	authorizedKeys := make([]string, 0)
@@ -113,7 +112,7 @@ func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
-	bootProfile, err := c.setBootProfile(serverID, activeBootProfile, arch, os, lang, authorizedKeys)
+	bootProfile, err := c.setBootProfile(ctx, serverNumber, activeBootProfile, os, lang, authorizedKeys)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -121,7 +120,7 @@ func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("ipv4_address", bootProfile.ServerIPv4)
 	d.Set("ipv6_network", bootProfile.ServerIPv6)
 	d.Set("password", bootProfile.Password)
-	d.SetId(strconv.Itoa(serverID))
+	d.SetId(strconv.Itoa(serverNumber))
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -132,20 +131,22 @@ func resourceBootCreate(ctx context.Context, d *schema.ResourceData, meta interf
 func resourceBootRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID, _ := strconv.Atoi(d.Id())
-	boot, err := c.getBoot(serverID)
+	serverNumber, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	boot, err := c.getBoot(ctx, serverNumber)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.Set("active_profile", boot.ActiveProfile)
-	d.Set("architecture", boot.Architecture)
 	d.Set("ipv4_address", boot.ServerIPv4)
 	d.Set("ipv6_network", boot.ServerIPv6)
 	d.Set("language", boot.Language)
 	d.Set("operating_system", boot.OperatingSystem)
 	d.Set("password", boot.Password)
-	d.Set("server_id", serverID)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -156,9 +157,8 @@ func resourceBootRead(ctx context.Context, d *schema.ResourceData, meta interfac
 func resourceBootUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID, _ := strconv.Atoi(d.Id())
+	serverNumber := d.Get("server_number").(int)
 	activeBootProfile := d.Get("active_profile").(string)
-	arch := d.Get("architecture").(string)
 	os := d.Get("operating_system").(string)
 	lang := d.Get("language").(string)
 	authorizedKeys := make([]string, 0)
@@ -168,7 +168,7 @@ func resourceBootUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
-	bootProfile, err := c.setBootProfile(serverID, activeBootProfile, arch, os, lang, authorizedKeys)
+	bootProfile, err := c.setBootProfile(ctx, serverNumber, activeBootProfile, os, lang, authorizedKeys)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -184,8 +184,23 @@ func resourceBootUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceBootDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+	c := meta.(HetznerRobotClient)
 
+	serverNumber := d.Get("server_number").(int)
+	profile := d.Get("active_profile").(string)
+	if profile == "" {
+		return diags
+	}
+
+	// deactivate the boot profile on Hetzner's side; best-effort so a profile
+	// that was already consumed (e.g. rescue after one boot) doesn't block destroy.
+	if err := c.deleteBootProfile(ctx, serverNumber, profile); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "could not deactivate boot profile",
+			Detail:   err.Error(),
+		})
+	}
 	return diags
 }
