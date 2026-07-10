@@ -1,24 +1,113 @@
-# provider documentation
+# terraform-provider-hetzner-robot
 
-[terraform documentation](docs/index.md)
+A Terraform provider for the [Hetzner Robot](https://robot.hetzner.com/doc/webservice/en.html)
+webservice — manage **dedicated servers** (boot config, resets, firewall, SSH keys,
+vSwitches, reverse DNS) and **order** new servers, as code.
 
-# background to this fork
+Full reference: [docs/](docs/index.md).
 
-Initial found this via terraform (https://registry.terraform.io/providers/mwudka/hetznerrobot/latest) and here in github
-at https://github.com/mwudka/terraform-provider-hetznerrobot, but it seems unfortunately it looks like it is no
-longer maintained. Then author of https://github.com/Peters-IT/terraform-provider-hetzner-robot made a fork of what I consider to be good improvements and new features
-from https://github.com/SLoeuillet/terraform-provider-hetznerrobot, and drop its maintenance.
-So I made a fresh new fork to keep it up to date.
+## Features
 
-This software comes without any guarantee of functionality.
+**Resources**
 
-Feel free to submit merge/pull requests.
+| Resource | Purpose |
+|---|---|
+| `hetzner-robot_server_order` | Order a dedicated server (`test = true` by default → validate without charge) |
+| `hetzner-robot_boot` | Set the boot/install profile — `linux`, `rescue`, `vnc`, `windows` (deactivates on destroy) |
+| `hetzner-robot_reset` | Trigger a hardware/software reset (apply a boot profile) |
+| `hetzner-robot_ssh_key` | Manage a key in the Robot key store |
+| `hetzner-robot_firewall` | Manage a server's firewall rules |
+| `hetzner-robot_vswitch` | Manage a vSwitch (private L2 network) |
+| `hetzner-robot_rdns` | Manage a reverse-DNS (PTR) record |
 
-# build
-## local
+**Data sources**
+
+| Data source | Purpose |
+|---|---|
+| `hetzner-robot_server` / `hetzner-robot_servers` | Look up a server / list all servers |
+| `hetzner-robot_server_products` / `hetzner-robot_server_product` | List orderable products / one product's orderable `dist`/`lang`/`arch` |
+| `hetzner-robot_ssh_key` | Look up a key **by name or fingerprint** |
+| `hetzner-robot_boot` | Read current boot config |
+| `hetzner-robot_vswitch` | Read a vSwitch |
+| `hetzner-robot_rdns` | Read a PTR record |
+
+## Usage
+
+```hcl
+provider "hetzner-robot" {
+  # credentials from HETZNERROBOT_USERNAME / HETZNERROBOT_PASSWORD (or set here)
+}
+
+data "hetzner-robot_ssh_key" "node" {
+  name = "k8s-node-key"
+}
+
+resource "hetzner-robot_server_order" "worker" {
+  product_id      = "AX42-1"
+  location        = "FSN1"
+  dist            = "Ubuntu 24.04 LTS base"
+  authorized_keys = [data.hetzner-robot_ssh_key.node.fingerprint]
+  test            = false # ⚠ billable — provisions real hardware
+}
 ```
-goreleaser release --snapshot --skip-sign --clean
+
+A complete, runnable walkthrough (order → install → rDNS) is in
+[`examples/complete/`](examples/complete).
+
+### Provider configuration
+
+| Argument | Env var | Notes |
+|---|---|---|
+| `username` | `HETZNERROBOT_USERNAME` | Robot webservice user (`#ws+…`) |
+| `password` | `HETZNERROBOT_PASSWORD` | |
+| `url` | `HETZNERROBOT_URL` | defaults to `https://robot-ws.your-server.de` |
+
+## Local development
+
+The provider isn't published to a registry, so build it and use a **dev override**
+(no `terraform init`):
+
+```bash
+go build -o terraform-provider-hetzner-robot .
+
+cat > ~/.terraformrc <<EOF
+provider_installation {
+  dev_overrides {
+    "gen0sec/hetzner-robot" = "/absolute/path/to/this/repo"
+  }
+  direct {}
+}
+EOF
+
+cd examples/complete && terraform plan   # NOT init
 ```
 
-## github
-works with github action and goreleaser/action automatically at each new tag
+## Build & release
+
+```bash
+# local snapshot
+goreleaser release --snapshot --clean
+```
+
+Releases build automatically via GitHub Actions + GoReleaser on each new `v*` tag.
+
+## Testing
+
+```bash
+go test -race -cover ./...   # unit tests (mock the Robot API; no credentials needed)
+```
+
+Acceptance tests hit the live API and are gated behind `TF_ACC`:
+
+```bash
+TF_ACC=1 HETZNERROBOT_USERNAME=… HETZNERROBOT_PASSWORD=… go test ./hetznerrobot/ -run TestAcc -v
+```
+
+## Fork lineage
+
+`mwudka/terraform-provider-hetznerrobot` → `SLoeuillet/terraform-provider-hetznerrobot`
+→ `Peters-IT/terraform-provider-hetzner-robot` → `strng-solutions/terraform-provider-hetzner-robot`
+→ **this fork** (`gen0sec`), which consolidates those and adds `reset`, `server_order`,
+`rdns`, `server_product`, SSH-key-by-name lookup, unit tests, and updated tooling.
+
+This software comes without any guarantee of functionality. PRs welcome.
