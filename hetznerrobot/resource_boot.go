@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceBoot() *schema.Resource {
@@ -27,9 +28,10 @@ func resourceBoot() *schema.Resource {
 			},
 			// optional
 			"active_profile": {
-				Type:        schema.TypeString, // Enum should be better (linux/rescue/...)
-				Optional:    true,
-				Description: "Active boot profile",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Active boot profile: linux, rescue, vnc, or windows",
+				ValidateFunc: validation.StringInSlice([]string{"linux", "rescue", "vnc", "windows"}, false),
 			},
 			"language": {
 				Type:        schema.TypeString, // Enum should be better (amd64/...)

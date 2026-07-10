@@ -21,8 +21,7 @@ description: |-
 
 ### Optional
 
-- `active_profile` (String) Active boot profile
-- `architecture` (String) Active Architecture
+- `active_profile` (String) Active boot profile: linux, rescue, vnc, or windows
 - `authorized_keys` (List of String) One or more SSH key fingerprints
 - `language` (String) Language
 - `operating_system` (String) Active Operating System / Distribution
