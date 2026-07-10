@@ -102,3 +102,17 @@ func (c *HetznerRobotClient) setBootProfile(ctx context.Context, serverNumber in
 
 	return &bootProfile, nil
 }
+
+// deleteBootProfile deactivates the given boot profile (rescue/linux/vnc/windows)
+// for a server via DELETE /boot/{server-number}/{profile}. A 404 is tolerated so
+// destroying a resource whose profile was already consumed/inactive is not fatal.
+func (c *HetznerRobotClient) deleteBootProfile(ctx context.Context, serverNumber int, profile string) error {
+	_, err := c.makeAPICall(
+		ctx,
+		"DELETE",
+		fmt.Sprintf("%s/boot/%d/%s", c.url, serverNumber, profile),
+		nil,
+		[]int{http.StatusOK, http.StatusNotFound},
+	)
+	return err
+}

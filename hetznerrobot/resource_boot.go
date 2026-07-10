@@ -182,8 +182,23 @@ func resourceBootUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceBootDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+	c := meta.(HetznerRobotClient)
 
+	serverNumber := d.Get("server_number").(int)
+	profile := d.Get("active_profile").(string)
+	if profile == "" {
+		return diags
+	}
+
+	// deactivate the boot profile on Hetzner's side; best-effort so a profile
+	// that was already consumed (e.g. rescue after one boot) doesn't block destroy.
+	if err := c.deleteBootProfile(ctx, serverNumber, profile); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "could not deactivate boot profile",
+			Detail:   err.Error(),
+		})
+	}
 	return diags
 }
