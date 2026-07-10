@@ -22,12 +22,12 @@ variable "upload_key_name" {
 
 variable "product_id" {
   type        = string
-  description = "Product ID to validate ordering for (see the available_product_ids output)."
-  default     = "EX44"
+  description = "Product ID to validate ordering for (see the available_product_ids output, e.g. AX42-1, EX63-1)."
+  default     = "AX42-1"
 }
 
 variable "location" {
   type        = string
-  description = "Datacenter location."
+  description = "Datacenter location the product supports (e.g. FSN1 or HEL1)."
   default     = "FSN1"
 }

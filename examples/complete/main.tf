@@ -36,9 +36,12 @@ data "hetzner-robot_servers" "existing" {}
 resource "hetzner-robot_server_order" "validate" {
   product_id      = var.product_id
   location        = var.location
-  dist            = "Ubuntu 24.04 LTS minimal"
-  lang            = "en"
   authorized_keys = local.authorized_key_fingerprints
+
+  # To also pre-install an OS, add `dist` (and `lang`) using values from that
+  # product's orderable options:
+  #   curl -su "$HETZNERROBOT_USERNAME:$HETZNERROBOT_PASSWORD" \
+  #     https://robot-ws.your-server.de/order/server/product/AX42-1 | jq '.product.dist, .product.lang'
 
   test = true
 }

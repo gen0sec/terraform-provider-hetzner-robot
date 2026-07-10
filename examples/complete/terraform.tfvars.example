@@ -8,5 +8,5 @@ existing_ssh_key_name = "k8s-node-key"
 # upload_key_name = "k8s-node-key"
 
 # Optional overrides:
-# product_id = "EX44"
+# product_id = "AX42-1"   # e.g. AX42-1, EX63-1, AX162-1
 # location   = "FSN1"
