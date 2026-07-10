@@ -41,6 +41,7 @@ func Provider() *schema.Provider {
 			"hetzner-robot_ssh_key":         dataSshKey(),
 			"hetzner-robot_vswitch":         dataVSwitch(),
 			"hetzner-robot_server_products": dataServerProducts(),
+			"hetzner-robot_server_product":  dataServerProduct(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

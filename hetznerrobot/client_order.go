@@ -26,6 +26,10 @@ type HetznerRobotServerProduct struct {
 	Traffic     string
 	Locations   []string
 	Prices      []HetznerRobotProductPrice
+	// orderable options (populated by the product-detail endpoint)
+	Dist []string
+	Lang []string
+	Arch []string
 }
 
 type HetznerRobotServerTransaction struct {
@@ -74,6 +78,9 @@ func parseServerProduct(p gjson.Result) HetznerRobotServerProduct {
 		Traffic:     p.Get("traffic").String(),
 		Locations:   gjsonStrings(p.Get("location")),
 		Prices:      prices,
+		Dist:        gjsonStrings(p.Get("dist")),
+		Lang:        gjsonStrings(p.Get("lang")),
+		Arch:        gjsonStrings(p.Get("arch")),
 	}
 }
 
@@ -105,6 +112,21 @@ func (c *HetznerRobotClient) getServerProducts(ctx context.Context) ([]HetznerRo
 		return true
 	})
 	return products, nil
+}
+
+// getServerProduct returns a single product's details including its orderable
+// dist/lang/arch/location options (GET /order/server/product/{id}).
+func (c *HetznerRobotClient) getServerProduct(ctx context.Context, id string) (*HetznerRobotServerProduct, error) {
+	res, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/order/server/product/%s", c.url, url.PathEscape(id)), nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	p := gjson.GetBytes(res, "product")
+	if !p.Exists() {
+		p = gjson.ParseBytes(res)
+	}
+	product := parseServerProduct(p)
+	return &product, nil
 }
 
 // createServerOrder places a server order transaction. When req.Test is true the

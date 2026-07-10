@@ -20,3 +20,12 @@ output "order_validation_status" {
   description = "Status returned by the test order (test = true)."
   value       = hetzner-robot_server_order.validate.status
 }
+
+output "product_install_options" {
+  description = "Orderable dist/lang/arch for the selected product — use these for a real order's dist/lang."
+  value = {
+    dist = data.hetzner-robot_server_product.selected.dist
+    lang = data.hetzner-robot_server_product.selected.lang
+    arch = data.hetzner-robot_server_product.selected.arch
+  }
+}

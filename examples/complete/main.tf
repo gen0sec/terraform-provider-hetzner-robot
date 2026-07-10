@@ -30,6 +30,12 @@ data "hetzner-robot_server_products" "available" {}
 
 data "hetzner-robot_servers" "existing" {}
 
+# Orderable install options (dist/lang/arch) for the product we're ordering —
+# use these to fill dist/lang on a real order.
+data "hetzner-robot_server_product" "selected" {
+  id = var.product_id
+}
+
 # 3. Validate a dedicated-server order.
 #    test = true  -> NO charge, nothing is provisioned (just validated).
 #    test = false -> places a REAL, billable order.

@@ -91,3 +91,25 @@ func TestGetServerOrder(t *testing.T) {
 		t.Errorf("parsed transaction = %+v", tx)
 	}
 }
+
+func TestGetServerProduct(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/order/server/product/AX42-1" {
+			t.Errorf("path = %s, want /order/server/product/AX42-1", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"product":{"id":"AX42-1","name":"Dedicated Server AX42-1","location":["FSN1","HEL1"],"dist":["Rescue system","Ubuntu 24.04.1 LTS base"],"lang":["en","de"],"arch":["64"]}}`))
+	}))
+	defer srv.Close()
+
+	c := NewHetznerRobotClient("u", "p", srv.URL)
+	p, err := c.getServerProduct(context.Background(), "AX42-1")
+	if err != nil {
+		t.Fatalf("getServerProduct error: %v", err)
+	}
+	if p.ID != "AX42-1" || len(p.Locations) != 2 {
+		t.Errorf("parsed product = %+v", p)
+	}
+	if len(p.Dist) != 2 || p.Dist[1] != "Ubuntu 24.04.1 LTS base" || len(p.Lang) != 2 || p.Arch[0] != "64" {
+		t.Errorf("orderable options = dist:%v lang:%v arch:%v", p.Dist, p.Lang, p.Arch)
+	}
+}
