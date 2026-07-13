@@ -18,6 +18,7 @@ func resourceServerAddonOrder() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"server_number": {Type: schema.TypeInt, Required: true, ForceNew: true, Description: "Server number to add the add-on to"},
 			"product_id":    {Type: schema.TypeString, Required: true, ForceNew: true, Description: "Add-on product ID (see the hetzner-robot_server_addons data source)"},
+			"reason":        {Type: schema.TypeString, Optional: true, ForceNew: true, Description: "Justification required by some add-ons (e.g. an additional/primary IPv4). Required by the API for those; ignored otherwise."},
 			"test": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -39,7 +40,7 @@ func resourceServerAddonOrderCreate(ctx context.Context, d *schema.ResourceData,
 	serverNumber := d.Get("server_number").(int)
 	test := d.Get("test").(bool)
 
-	tx, err := c.createServerAddonOrder(ctx, serverNumber, d.Get("product_id").(string), test)
+	tx, err := c.createServerAddonOrder(ctx, serverNumber, d.Get("product_id").(string), d.Get("reason").(string), test)
 	if err != nil {
 		return diag.FromErr(err)
 	}

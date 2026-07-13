@@ -46,7 +46,7 @@ func TestCreateServerAddonOrder(t *testing.T) {
 	defer srv.Close()
 
 	c := NewHetznerRobotClient("u", "p", srv.URL)
-	tx, err := c.createServerAddonOrder(context.Background(), 2093885, "failover_ip", true)
+	tx, err := c.createServerAddonOrder(context.Background(), 2093885, "failover_ip", "", true)
 	if err != nil {
 		t.Fatalf("createServerAddonOrder error: %v", err)
 	}
@@ -56,7 +56,33 @@ func TestCreateServerAddonOrder(t *testing.T) {
 	if gotForm.Get("server_number") != "2093885" || gotForm.Get("product_id") != "failover_ip" || gotForm.Get("test") != "true" {
 		t.Errorf("form = %v", gotForm)
 	}
+	if gotForm.Has("reason") {
+		t.Errorf("reason should be omitted when empty, got form = %v", gotForm)
+	}
 	if tx.ID != "B-A1" || tx.ServerNumber != 2093885 {
 		t.Errorf("parsed transaction = %+v", tx)
+	}
+}
+
+func TestCreateServerAddonOrder_WithReason(t *testing.T) {
+	var gotForm url.Values
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		gotForm = r.PostForm
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"transaction":{"id":"B-A2","status":"in process","server_number":2093885}}`))
+	}))
+	defer srv.Close()
+
+	c := NewHetznerRobotClient("u", "p", srv.URL)
+	_, err := c.createServerAddonOrder(context.Background(), 2093885, "primary_ipv4", "k8s worker node", false)
+	if err != nil {
+		t.Fatalf("createServerAddonOrder error: %v", err)
+	}
+	if gotForm.Get("reason") != "k8s worker node" {
+		t.Errorf("reason = %q, want %q", gotForm.Get("reason"), "k8s worker node")
+	}
+	if gotForm.Has("test") {
+		t.Errorf("test should be omitted when false, got form = %v", gotForm)
 	}
 }
