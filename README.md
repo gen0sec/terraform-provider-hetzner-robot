@@ -120,3 +120,7 @@ TF_ACC=1 HETZNERROBOT_USERNAME=… HETZNERROBOT_PASSWORD=… go test ./hetznerro
 `rdns`, `server_product`, SSH-key-by-name lookup, unit tests, and updated tooling.
 
 This software comes without any guarantee of functionality. PRs welcome.
+
+## License
+
+Licensed under the [Mozilla Public License 2.0](LICENSE).
