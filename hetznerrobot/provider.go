@@ -36,6 +36,9 @@ func Provider() *schema.Provider {
 			"hetzner-robot_server_market_order": resourceServerMarketOrder(),
 			"hetzner-robot_server_addon_order":  resourceServerAddonOrder(),
 			"hetzner-robot_rdns":                resourceRdns(),
+			"hetzner-robot_failover":            resourceFailover(),
+			"hetzner-robot_server_cancellation": resourceServerCancellation(),
+			"hetzner-robot_server":              resourceServer(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"hetzner-robot_boot":                   dataBoot(),
@@ -48,6 +51,7 @@ func Provider() *schema.Provider {
 			"hetzner-robot_server_market_products": dataServerMarketProducts(),
 			"hetzner-robot_server_addons":          dataServerAddons(),
 			"hetzner-robot_rdns":                   dataRdns(),
+			"hetzner-robot_failover":               dataFailover(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
