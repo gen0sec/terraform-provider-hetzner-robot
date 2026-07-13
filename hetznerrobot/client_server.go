@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type HetznerRobotServerResponse struct {
@@ -55,6 +56,22 @@ func (c *HetznerRobotClient) getServer(ctx context.Context, serverNumber int) (*
 		return nil, err
 	}
 
+	serverResponse := HetznerRobotServerResponse{}
+	if err = json.Unmarshal(res, &serverResponse); err != nil {
+		return nil, err
+	}
+	return &serverResponse.Server, nil
+}
+
+// renameServer sets the server's name (POST /server/{server-number}).
+func (c *HetznerRobotClient) renameServer(ctx context.Context, serverNumber int, name string) (*HetznerRobotServer, error) {
+	data := url.Values{}
+	data.Set("server_name", name)
+
+	res, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/server/%d", c.url, serverNumber), data, []int{http.StatusOK, http.StatusAccepted})
+	if err != nil {
+		return nil, err
+	}
 	serverResponse := HetznerRobotServerResponse{}
 	if err = json.Unmarshal(res, &serverResponse); err != nil {
 		return nil, err

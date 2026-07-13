@@ -44,11 +44,15 @@ func (c *HetznerRobotClient) getServerAddonProducts(ctx context.Context, serverN
 }
 
 // createServerAddonOrder orders an add-on for an existing server. When test is
-// true the order is validated only (no charge).
-func (c *HetznerRobotClient) createServerAddonOrder(ctx context.Context, serverNumber int, productID string, test bool) (*HetznerRobotServerTransaction, error) {
+// true the order is validated only (no charge). reason is an optional
+// justification required by some add-ons (e.g. an additional/primary IPv4).
+func (c *HetznerRobotClient) createServerAddonOrder(ctx context.Context, serverNumber int, productID, reason string, test bool) (*HetznerRobotServerTransaction, error) {
 	data := url.Values{}
 	data.Set("server_number", strconv.Itoa(serverNumber))
 	data.Set("product_id", productID)
+	if reason != "" {
+		data.Set("reason", reason)
+	}
 	if test {
 		data.Set("test", "true")
 	}
