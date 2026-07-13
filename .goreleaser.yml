@@ -4,8 +4,9 @@ version: 2
 before:
   hooks:
     - go mod tidy
-    - go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-    - tfplugindocs generate
+    # docs are generated + committed in-repo (see `go generate`); we do NOT
+    # regenerate them at release time because tfplugindocs needs a terraform
+    # binary that the release runner does not install.
 builds:
   - env:
       # goreleaser does not work with CGO, it could also complicate
