@@ -19,6 +19,14 @@ func TestProvider_registrations(t *testing.T) {
 		"hetzner-robot_ssh_key",
 		"hetzner-robot_vswitch",
 		"hetzner-robot_reset",
+		"hetzner-robot_ip",
+		"hetzner-robot_ip_mac",
+		"hetzner-robot_subnet",
+		"hetzner-robot_subnet_mac",
+		"hetzner-robot_wol",
+		"hetzner-robot_storagebox",
+		"hetzner-robot_storagebox_snapshot",
+		"hetzner-robot_storagebox_subaccount",
 	}
 	for _, name := range wantResources {
 		if _, ok := p.ResourcesMap[name]; !ok {
@@ -32,6 +40,11 @@ func TestProvider_registrations(t *testing.T) {
 		"hetzner-robot_servers",
 		"hetzner-robot_ssh_key",
 		"hetzner-robot_vswitch",
+		"hetzner-robot_ip",
+		"hetzner-robot_subnet",
+		"hetzner-robot_traffic",
+		"hetzner-robot_storagebox",
+		"hetzner-robot_storageboxes",
 	}
 	for _, name := range wantData {
 		if _, ok := p.DataSourcesMap[name]; !ok {
