@@ -19,6 +19,12 @@ Full reference: [docs/](docs/index.md).
 | `hetzner-robot_firewall` | Manage a server's firewall rules |
 | `hetzner-robot_vswitch` | Manage a vSwitch (private L2 network) |
 | `hetzner-robot_rdns` | Manage a reverse-DNS (PTR) record |
+| `hetzner-robot_ip` / `hetzner-robot_subnet` | Manage traffic-warning limits for an IP / subnet |
+| `hetzner-robot_ip_mac` / `hetzner-robot_subnet_mac` | Manage a virtual MAC (vMAC) for an IP / subnet |
+| `hetzner-robot_wol` | Send a Wake-on-LAN packet to a server |
+| `hetzner-robot_storagebox` | Manage an existing Storage Box's name and service toggles |
+| `hetzner-robot_storagebox_snapshot` | Create a Storage Box snapshot |
+| `hetzner-robot_storagebox_subaccount` | Manage a Storage Box subaccount |
 
 **Data sources**
 
@@ -30,6 +36,9 @@ Full reference: [docs/](docs/index.md).
 | `hetzner-robot_boot` | Read current boot config |
 | `hetzner-robot_vswitch` | Read a vSwitch |
 | `hetzner-robot_rdns` | Read a PTR record |
+| `hetzner-robot_ip` / `hetzner-robot_subnet` | Read an IP / subnet's details |
+| `hetzner-robot_traffic` | Query traffic statistics for an IP over a period |
+| `hetzner-robot_storagebox` / `hetzner-robot_storageboxes` | Read a Storage Box / list all Storage Boxes |
 
 ## Usage
 
