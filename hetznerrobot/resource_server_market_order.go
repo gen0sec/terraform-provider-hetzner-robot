@@ -22,6 +22,13 @@ func resourceServerMarketOrder() *schema.Resource {
 			"authorized_keys": {Type: schema.TypeList, Optional: true, ForceNew: true, Elem: &schema.Schema{Type: schema.TypeString}, Description: "SSH key fingerprints authorized on the server"},
 			"password":        {Type: schema.TypeString, Optional: true, ForceNew: true, Sensitive: true, Description: "Root password (alternative to authorized_keys)"},
 			"addons":          {Type: schema.TypeList, Optional: true, ForceNew: true, Elem: &schema.Schema{Type: schema.TypeString}, Description: "Product add-on IDs"},
+			"primary_ipv4": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+				Default:     false,
+				Description: "Convenience flag: when true, adds the \"primary_ipv4\" add-on so the auction server is ordered with a public IPv4 (auction servers are IPv6-only by default). Equivalent to including \"primary_ipv4\" in addons.",
+			},
 			"test": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -48,7 +55,7 @@ func resourceServerMarketOrderCreate(ctx context.Context, d *schema.ResourceData
 		Lang:           d.Get("lang").(string),
 		AuthorizedKeys: serverOrderStringList(d, "authorized_keys"),
 		Password:       d.Get("password").(string),
-		Addons:         serverOrderStringList(d, "addons"),
+		Addons:         serverOrderAddons(d),
 		Test:           d.Get("test").(bool),
 	}
 
