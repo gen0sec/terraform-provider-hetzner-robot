@@ -24,6 +24,13 @@ func resourceServerOrder() *schema.Resource {
 			"authorized_keys": {Type: schema.TypeList, Optional: true, ForceNew: true, Elem: &schema.Schema{Type: schema.TypeString}, Description: "SSH key fingerprints authorized on the ordered server"},
 			"password":        {Type: schema.TypeString, Optional: true, ForceNew: true, Sensitive: true, Description: "Root password (alternative to authorized_keys)"},
 			"addons":          {Type: schema.TypeList, Optional: true, ForceNew: true, Elem: &schema.Schema{Type: schema.TypeString}, Description: "Product add-on IDs"},
+			"primary_ipv4": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+				Default:     false,
+				Description: "Convenience flag: when true, adds the \"primary_ipv4\" add-on so the server is ordered with a public IPv4 (servers are IPv4-less by default). Equivalent to including \"primary_ipv4\" in addons.",
+			},
 			"test": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -50,6 +57,22 @@ func serverOrderStringList(d *schema.ResourceData, key string) []string {
 	return out
 }
 
+// serverOrderAddons returns the explicit addon IDs, plus "primary_ipv4" when the
+// primary_ipv4 convenience flag is set (deduplicated). Shared by the server and
+// server-market order resources, both of which expose a primary_ipv4 flag.
+func serverOrderAddons(d *schema.ResourceData) []string {
+	addons := serverOrderStringList(d, "addons")
+	if d.Get("primary_ipv4").(bool) {
+		for _, a := range addons {
+			if a == "primary_ipv4" {
+				return addons // already present
+			}
+		}
+		addons = append(addons, "primary_ipv4")
+	}
+	return addons
+}
+
 func resourceServerOrderCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	c := meta.(HetznerRobotClient)
@@ -61,7 +84,7 @@ func resourceServerOrderCreate(ctx context.Context, d *schema.ResourceData, meta
 		Lang:           d.Get("lang").(string),
 		AuthorizedKeys: serverOrderStringList(d, "authorized_keys"),
 		Password:       d.Get("password").(string),
-		Addons:         serverOrderStringList(d, "addons"),
+		Addons:         serverOrderAddons(d),
 		Test:           d.Get("test").(bool),
 	}
 

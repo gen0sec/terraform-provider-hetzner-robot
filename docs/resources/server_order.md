@@ -43,6 +43,7 @@ resource "hetzner-robot_server_order" "worker" {
 - `lang` (String) Installation language
 - `location` (String) Datacenter location (e.g. FSN1)
 - `password` (String, Sensitive) Root password (alternative to authorized_keys)
+- `primary_ipv4` (Boolean) Convenience flag: when true, adds the "primary_ipv4" add-on so the server is ordered with a public IPv4 (servers are IPv4-less by default). Equivalent to including "primary_ipv4" in addons.
 - `test` (Boolean) If true (default), validate the order only — no server is provisioned and no charge is made. Set to false to place a real, billable order.
 
 ### Read-Only
